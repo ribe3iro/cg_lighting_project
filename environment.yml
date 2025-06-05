@@ -1,0 +1,9 @@
+name: cg_env
+dependencies:
+  - python=3.10
+  - pip:
+    - glfw
+    - numpy
+    - pyglm
+    - PyOpenGL
+    - pillow
