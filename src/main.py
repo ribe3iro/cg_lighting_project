@@ -662,18 +662,17 @@ if __name__ == '__main__':
         slice_vertices_olhos = light_source_manager.get_vertices_slice(obj_index=0)
         model_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER.getProgram(), **olhos_model_args)
         desenha_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER, texture_id=14, light_source=True)
-        loadLightSourceAttributes(
-            position=olhos['position'],
-            color=olhos['color'],
-            index=0
-        )
+        loadLightSourceAttributes(**olhos, index=0)
         
         
         portal = {
             'position': [2, 10, 0],
-            'color': [0,0.2,0]
+            'color': [0,1,0],
+            'constant': 0.95,
+            'linear': 0.05,
+            'quadratic': 0.015
         }
-        portal['model_args'] = dict(
+        portal_model_args = dict(
             t_x=portal['position'][0],
             t_y=portal['position'][1],
             t_z=portal['position'][2],
@@ -681,34 +680,29 @@ if __name__ == '__main__':
         )
 
         slice_vertices_portal = light_source_manager.get_vertices_slice(obj_index=1)
-        model_objeto(*slice_vertices_portal, LIGHT_SOURCE_SHADER.getProgram(), **portal['model_args'], s_x=5, s_y=5, s_z=5)
-        desenha_objeto(*slice_vertices_portal, LIGHT_SOURCE_SHADER, texture_id=18)
-        loadLightSourceAttributes(
-            position=portal['position'],
-            color=portal['color'],
-            index=1
-        )
+        model_objeto(*slice_vertices_portal, LIGHT_SOURCE_SHADER.getProgram(), **portal_model_args, s_x=5, s_y=5, s_z=5)
+        desenha_objeto(*slice_vertices_portal, LIGHT_SOURCE_SHADER, texture_id=18, light_source=True)
+        loadLightSourceAttributes(**portal, index=1)
         
         
         lantern = {
-            'position': [-2.02, -0.663, -31.265],
-            'color': [.5,0.25,0.05]
+            'position': [-2.02, -0.643, -31.265],
+            'color': [.5,0.25,0.05],
+            'constant': 1.0,
+            'linear': 0.06,
+            'quadratic': 0.02
         }
-        lantern['model_args'] = dict(
+        lantern_model_args = dict(
             t_x=lantern['position'][0],
-            t_y=lantern['position'][1] - 0.08,
+            t_y=lantern['position'][1]-0.1,
             t_z=lantern['position'][2],
             s_x=0.003, s_y=0.003, s_z=0.003
         )
 
         slice_vertices_lantern = light_source_manager.get_vertices_slice(obj_index=2)
-        model_objeto(*slice_vertices_lantern, LIGHT_SOURCE_SHADER.getProgram(), **lantern['model_args'])
-        desenha_objeto(*slice_vertices_lantern, LIGHT_SOURCE_SHADER, texture_id=19)
-        loadLightSourceAttributes(
-            position=lantern['position'],
-            color=lantern['color'],
-            index=2
-        )
+        model_objeto(*slice_vertices_lantern, LIGHT_SOURCE_SHADER.getProgram(), **lantern_model_args)
+        desenha_objeto(*slice_vertices_lantern, LIGHT_SOURCE_SHADER, texture_id=19, light_source=True)
+        loadLightSourceAttributes(**lantern, index=2)
 
         ## VIEW
         cameraPos += cameraVel * deltaTime
