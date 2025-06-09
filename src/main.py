@@ -315,6 +315,8 @@ if __name__ == '__main__':
 
     # vértices
     light_source_manager.load_obj(path_join(OBJECTS_PATH, 'olhos.obj'))
+    light_source_manager.load_obj(path_join(OBJECTS_PATH, 'portal.obj'))
+    light_source_manager.load_obj(path_join(OBJECTS_PATH, 'lantern.obj'))
 
     # vec3 aPosition
     attributes, num_vertices = light_source_manager.get_attribute_arrays()
@@ -361,6 +363,7 @@ if __name__ == '__main__':
     obj_manager.load_obj(path_join(OBJECTS_PATH, 'haunter.obj'))
     obj_manager.load_obj(path_join(OBJECTS_PATH, 'muro.obj'))
     obj_manager.load_obj(path_join(OBJECTS_PATH, 'lapide.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'portal.obj'))
 
     # texturas
     obj_manager.load_texture(path_join(TEXTURES_PATH, 'terra.png'))
@@ -379,6 +382,8 @@ if __name__ == '__main__':
     obj_manager.load_texture(path_join(TEXTURES_PATH, 'haunter.png'))
     obj_manager.load_texture(path_join(TEXTURES_PATH, 'muro.jpg'))
     obj_manager.load_texture(path_join(TEXTURES_PATH, 'lapide.jpeg'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'portal.png'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'lantern.jpg'))
 
     # vec3 aPosition
     # vec2 aTexture_coord
@@ -653,10 +658,57 @@ if __name__ == '__main__':
             t_z=olhos['position'][2],
             r_y=haunter_rot_y
         )
+
         slice_vertices_olhos = light_source_manager.get_vertices_slice(obj_index=0)
         model_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER.getProgram(), **olhos_model_args)
         desenha_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER, texture_id=14, light_source=True)
-        loadLightSourceAttributes(**olhos, index=0)
+        loadLightSourceAttributes(
+            position=olhos['position'],
+            color=olhos['color'],
+            index=0
+        )
+        
+        
+        portal = {
+            'position': [2, 10, 0],
+            'color': [0,0.2,0]
+        }
+        portal['model_args'] = dict(
+            t_x=portal['position'][0],
+            t_y=portal['position'][1],
+            t_z=portal['position'][2],
+            r_x=90
+        )
+
+        slice_vertices_portal = light_source_manager.get_vertices_slice(obj_index=1)
+        model_objeto(*slice_vertices_portal, LIGHT_SOURCE_SHADER.getProgram(), **portal['model_args'], s_x=5, s_y=5, s_z=5)
+        desenha_objeto(*slice_vertices_portal, LIGHT_SOURCE_SHADER, texture_id=18)
+        loadLightSourceAttributes(
+            position=portal['position'],
+            color=portal['color'],
+            index=1
+        )
+        
+        
+        lantern = {
+            'position': [-2.02, -0.663, -31.265],
+            'color': [.5,0.25,0.05]
+        }
+        lantern['model_args'] = dict(
+            t_x=lantern['position'][0],
+            t_y=lantern['position'][1] - 0.08,
+            t_z=lantern['position'][2],
+            s_x=0.003, s_y=0.003, s_z=0.003
+        )
+
+        slice_vertices_lantern = light_source_manager.get_vertices_slice(obj_index=2)
+        model_objeto(*slice_vertices_lantern, LIGHT_SOURCE_SHADER.getProgram(), **lantern['model_args'])
+        desenha_objeto(*slice_vertices_lantern, LIGHT_SOURCE_SHADER, texture_id=19)
+        loadLightSourceAttributes(
+            position=lantern['position'],
+            color=lantern['color'],
+            index=2
+        )
 
         ## VIEW
         cameraPos += cameraVel * deltaTime

@@ -7,6 +7,7 @@ in vec3 aNormal;
 out vec2 texture_coord;
 out vec3 frag_pos;
 out vec3 normal;
+out vec3 view_pos;
 		
 uniform mat4 model;
 uniform mat4 view;
