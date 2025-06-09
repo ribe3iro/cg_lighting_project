@@ -315,6 +315,7 @@ if __name__ == '__main__':
 
     # vértices
     light_source_manager.load_obj(path_join(OBJECTS_PATH, 'olhos.obj'))
+    light_source_manager.load_obj(path_join(OBJECTS_PATH, 'portal.obj'))
 
     # vec3 aPosition
     attributes, num_vertices = light_source_manager.get_attribute_arrays()
@@ -361,6 +362,7 @@ if __name__ == '__main__':
     obj_manager.load_obj(path_join(OBJECTS_PATH, 'haunter.obj'))
     obj_manager.load_obj(path_join(OBJECTS_PATH, 'muro.obj'))
     obj_manager.load_obj(path_join(OBJECTS_PATH, 'lapide.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'portal.obj'))
 
     # texturas
     obj_manager.load_texture(path_join(TEXTURES_PATH, 'terra.png'))
@@ -379,6 +381,7 @@ if __name__ == '__main__':
     obj_manager.load_texture(path_join(TEXTURES_PATH, 'haunter.png'))
     obj_manager.load_texture(path_join(TEXTURES_PATH, 'muro.jpg'))
     obj_manager.load_texture(path_join(TEXTURES_PATH, 'lapide.jpeg'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'portal.png'))
 
     # vec3 aPosition
     # vec2 aTexture_coord
@@ -649,6 +652,7 @@ if __name__ == '__main__':
             t_z=olhos['position'][2],
             r_y=haunter_rot_y
         )
+
         slice_vertices_olhos = light_source_manager.get_vertices_slice(obj_index=0)
         model_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER.getProgram(), **olhos['model_args'])
         desenha_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER, texture_id=14, light_source=True)
@@ -656,6 +660,27 @@ if __name__ == '__main__':
             position=olhos['position'],
             color=olhos['color'],
             index=0
+        )
+        
+        
+        portal = {
+            'position': [2, 10, 0],
+            'color': [0,0.2,0]
+        }
+        portal['model_args'] = dict(
+            t_x=portal['position'][0],
+            t_y=portal['position'][1],
+            t_z=portal['position'][2],
+            r_x=90
+        )
+
+        slice_vertices_portal = light_source_manager.get_vertices_slice(obj_index=1)
+        model_objeto(*slice_vertices_portal, LIGHT_SOURCE_SHADER.getProgram(), **portal['model_args'], s_x=5, s_y=5, s_z=5)
+        desenha_objeto(*slice_vertices_portal, LIGHT_SOURCE_SHADER, texture_id=18)
+        loadLightSourceAttributes(
+            position=portal['position'],
+            color=portal['color'],
+            index=1
         )
 
         ## VIEW
