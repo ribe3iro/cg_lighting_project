@@ -36,7 +36,7 @@ def model_objeto(vertice_inicial, num_vertices, program, t_x=0, t_y=0, t_z=0, s_
 
 # --------------------------------------------------------
 
-def desenha_objeto(vertice_inicial, num_vertices, shader, color=None, texture_id=-1, ka=0.2, kd=0.8, kn=0.3, ns=10, cube_map=False, light_source=False):
+def desenha_objeto(vertice_inicial, num_vertices, shader, color=None, texture_id=-1, ka=0.2, kd=0.8, ks=0.3, ns=10, cube_map=False, light_source=False):
     # texture
     if texture_id >= 0:
         shader.setVec3('color', *[0,0,0])
@@ -53,7 +53,7 @@ def desenha_objeto(vertice_inicial, num_vertices, shader, color=None, texture_id
     if not light_source:
         shader.setFloat('reflectionCoeff.ka', ka)
         shader.setFloat('reflectionCoeff.kd', kd)
-        shader.setFloat('reflectionCoeff.kn', kn)
+        shader.setFloat('reflectionCoeff.ks', ks)
         shader.setFloat('reflectionCoeff.ns', ns)
     
     # desenha o objeto
@@ -106,7 +106,7 @@ def camera_movement_handler():
 def key_event(window,key,scancode,action,mods):
     global cameraPos
     global papelPos, papelEscala, pegandoPapel, papelVisivel
-    global machadoRotacao
+    global ka_offset, kd_offset, ks_offset
     global show_lines, flying_state, mostrar_corpo
     # ESC - fechar janela
     if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
@@ -137,19 +137,32 @@ def key_event(window,key,scancode,action,mods):
             pegandoPapel = True
             papelVisivel = not papelVisivel
 
-    # C - toggle rotação machado (anti-horário)
-    if key == glfw.KEY_C and action == glfw.PRESS:
-        if machadoRotacao < 0:
-            machadoRotacao = 0
-        else:
-            machadoRotacao = 1
+    # Z - diminuir coeficiente de reflexão ambiente base
+    if key == glfw.KEY_Z and action == glfw.PRESS:
+        ka_offset -= 0.05
     
-    # V - toggle rotação machado (horário)
+    # X - aumentar coeficiente de reflexão ambiente base
+    if key == glfw.KEY_X and action == glfw.PRESS:
+        ka_offset += 0.05
+    ka_offset = max(-1, min(ka_offset, 1))
+
+    # C - diminuir coeficiente de reflexão difusa base
+    if key == glfw.KEY_C and action == glfw.PRESS:
+        kd_offset -= 0.05
+    
+    # V - aumentar coeficiente de reflexão difusa base
     if key == glfw.KEY_V and action == glfw.PRESS:
-        if machadoRotacao > 0:
-            machadoRotacao = 0
-        else:
-            machadoRotacao = -1
+        kd_offset += 0.05
+    kd_offset = max(-1, min(kd_offset, 1))
+
+    # B - diminuir coeficiente de reflexão especular base
+    if key == glfw.KEY_B and action == glfw.PRESS:
+        ks_offset -= 0.05
+    
+    # N - aumentar coeficiente de reflexão especular base
+    if key == glfw.KEY_N and action == glfw.PRESS:
+        ks_offset += 0.05
+    ks_offset = max(-1, min(ks_offset, 1))
 
 def framebuffer_size_callback(window, largura, altura):
     glViewport(0, 0, largura, altura)
@@ -317,6 +330,7 @@ if __name__ == '__main__':
     light_source_manager.load_obj(path_join(OBJECTS_PATH, 'olhos.obj'))
     light_source_manager.load_obj(path_join(OBJECTS_PATH, 'portal.obj'))
     light_source_manager.load_obj(path_join(OBJECTS_PATH, 'lantern.obj'))
+    light_source_manager.load_obj(path_join(OBJECTS_PATH, 'fantasma.obj'))
 
     # vec3 aPosition
     attributes, num_vertices = light_source_manager.get_attribute_arrays()
@@ -438,8 +452,7 @@ if __name__ == '__main__':
     papelEscala = 1
     pegandoPapel = False
     papelVisivel = True
-    machadoRotacao = 0
-    machadoAngulo = -112
+    ka_offset=0; kd_offset=0; ks_offset=0;
     haunter_t = 0.0
     mostrar_corpo = False
 
@@ -521,7 +534,11 @@ if __name__ == '__main__':
         desenha_objeto(
             *slice_vertices_chao,
             shader=DEFAULT_SHADER,
-            texture_id=2
+            texture_id=2,
+            ka=0.25+ka_offset,
+            kd=0.7+kd_offset,
+            ks=0+ks_offset,
+            ns=1
         )
 
         # slice_vertices_caixa2 = obj_manager.get_vertices_slice(obj_index=1)
@@ -530,24 +547,63 @@ if __name__ == '__main__':
 
         slice_vertices_casa = obj_manager.get_vertices_slice(obj_index=2)
         model_objeto(*slice_vertices_casa, DEFAULT_SHADER.getProgram(), t_x=1, t_y=-2, t_z=-30, r_y=-90, s_x=2, s_y=2, s_z=2)
-        desenha_objeto(*slice_vertices_casa, DEFAULT_SHADER, texture_id=4)
+        desenha_objeto(
+            *slice_vertices_casa,
+            DEFAULT_SHADER,
+            texture_id=4,
+            ka=0.2+ka_offset,
+            kd=0.8+kd_offset,
+            ks=0.2+ks_offset,
+            ns=1
+        )
 
         slice_vertices_mesa_escritorio = obj_manager.get_vertices_slice(obj_index=3)
         model_objeto(*slice_vertices_mesa_escritorio, DEFAULT_SHADER.getProgram(), t_x=-1.9, t_y=-1.5, t_z=-32, r_x=90, r_y=180, r_z=-90, s_x=0.01, s_y=0.01, s_z=0.01)
-        desenha_objeto(*slice_vertices_mesa_escritorio, DEFAULT_SHADER, texture_id=5)
+        desenha_objeto(
+            *slice_vertices_mesa_escritorio,
+            DEFAULT_SHADER,
+            texture_id=5,
+            ka=0.2+ka_offset,
+            kd=0.9+kd_offset,
+            ks=0.8+ks_offset,
+            ns=100
+        )
 
         slice_vertices_mesa = obj_manager.get_vertices_slice(obj_index=4)
         model_objeto(*slice_vertices_mesa, DEFAULT_SHADER.getProgram(), t_y=-1.55, t_z=-28.58, r_y=45, s_x=0.55, s_y=0.55, s_z=0.55)
-        desenha_objeto(*slice_vertices_mesa, DEFAULT_SHADER, texture_id=6)
+        desenha_objeto(
+            *slice_vertices_mesa,
+            DEFAULT_SHADER,
+            texture_id=6,
+            ka=0.2+ka_offset,
+            kd=0.9+kd_offset,
+            ks=0.4+ks_offset,
+            ns=5
+        )
 
         slice_vertices_cama = obj_manager.get_vertices_slice(obj_index=5)
         model_objeto(*slice_vertices_cama, DEFAULT_SHADER.getProgram(), t_x=3.6, t_y=-1.56, t_z=-31.9, r_y=-90, s_x=0.007, s_y=0.007, s_z=0.007)
-        desenha_objeto(*slice_vertices_cama, DEFAULT_SHADER, texture_id=7)
+        desenha_objeto(
+            *slice_vertices_cama,
+            DEFAULT_SHADER,
+            texture_id=7,
+            ka=0.2+ka_offset,
+            kd=0.7+kd_offset,
+            ks=0.3+ks_offset,
+            ns=5
+        )
         
-        machadoAngulo += (machadoRotacao * deltaTime * 480)
         slice_vertices_machado = obj_manager.get_vertices_slice(obj_index=6)
-        model_objeto(*slice_vertices_machado, DEFAULT_SHADER.getProgram(), t_y=-0.764, t_z=-28.75, r_y=machadoAngulo)
-        desenha_objeto(*slice_vertices_machado, DEFAULT_SHADER, texture_id=8)
+        model_objeto(*slice_vertices_machado, DEFAULT_SHADER.getProgram(), t_y=-0.764, t_z=-28.75)
+        desenha_objeto(
+            *slice_vertices_machado,
+            DEFAULT_SHADER, 
+            texture_id=8,
+            ka=0.2+ka_offset,
+            kd=0.9+kd_offset,
+            ks=0.5+ks_offset,
+            ns=10
+        )
         
         if pegandoPapel:
             if not papelVisivel:
@@ -567,7 +623,15 @@ if __name__ == '__main__':
             t_x=papelPos.x, t_y=papelPos.y, t_z=papelPos.z, 
             s_x=papelEscala, s_y=papelEscala, s_z=papelEscala, 
             r_y=85)
-        desenha_objeto(*slice_vertices_papel, DEFAULT_SHADER, texture_id=9)
+        desenha_objeto(
+            *slice_vertices_papel,
+            DEFAULT_SHADER,
+            texture_id=9,
+            ka=0.2+ka_offset,
+            kd=0.9+kd_offset,
+            ks=0+ks_offset,
+            ns=1
+        )
         
         slice_vertices_tronco1 = obj_manager.get_vertices_slice(obj_index=8)
         model_objeto(*slice_vertices_tronco1, DEFAULT_SHADER.getProgram(), t_x=-5, t_y=-2.3)
@@ -581,15 +645,6 @@ if __name__ == '__main__':
         slice_vertices_tronco4 = obj_manager.get_vertices_slice(obj_index=8)
         model_objeto(*slice_vertices_tronco4, DEFAULT_SHADER.getProgram(), t_x=15, t_y=-2.3, t_z=-35)
         desenha_objeto(*slice_vertices_tronco4, DEFAULT_SHADER, texture_id=10)
-
-        fantasma_tz = -28.6
-
-        fantasma_dx = cameraPos.x
-        fantasma_dz = cameraPos.z - fantasma_tz
-        fantasma_rot_y = math.degrees(math.atan2(fantasma_dx, fantasma_dz))
-        slice_vertices_fantasma = obj_manager.get_vertices_slice(obj_index=9)
-        model_objeto(*slice_vertices_fantasma, DEFAULT_SHADER.getProgram(), t_y=-1.29, t_z=fantasma_tz, r_y=fantasma_rot_y, s_x=0.5, s_y=0.5, s_z=0.5)
-        desenha_objeto(*slice_vertices_fantasma, DEFAULT_SHADER, texture_id=11)
 
         n_fake_arvores = 7
         raio = 50
@@ -658,7 +713,6 @@ if __name__ == '__main__':
             t_z=olhos['position'][2],
             r_y=haunter_rot_y
         )
-
         slice_vertices_olhos = light_source_manager.get_vertices_slice(obj_index=0)
         model_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER.getProgram(), **olhos_model_args)
         desenha_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER, texture_id=14, light_source=True)
@@ -678,7 +732,6 @@ if __name__ == '__main__':
             t_z=portal['position'][2],
             r_x=90
         )
-
         slice_vertices_portal = light_source_manager.get_vertices_slice(obj_index=1)
         model_objeto(*slice_vertices_portal, LIGHT_SOURCE_SHADER.getProgram(), **portal_model_args, s_x=5, s_y=5, s_z=5)
         desenha_objeto(*slice_vertices_portal, LIGHT_SOURCE_SHADER, texture_id=18, light_source=True)
@@ -698,11 +751,32 @@ if __name__ == '__main__':
             t_z=lantern['position'][2],
             s_x=0.003, s_y=0.003, s_z=0.003
         )
-
         slice_vertices_lantern = light_source_manager.get_vertices_slice(obj_index=2)
         model_objeto(*slice_vertices_lantern, LIGHT_SOURCE_SHADER.getProgram(), **lantern_model_args)
         desenha_objeto(*slice_vertices_lantern, LIGHT_SOURCE_SHADER, texture_id=19, light_source=True)
         loadLightSourceAttributes(**lantern, index=2)
+
+        fantasma_tz = -28.6
+        fantasma_dz = cameraPos.z - fantasma_tz
+        fantasma_rot_y = math.degrees(math.atan2(cameraPos.x, fantasma_dz))
+        fantasma = {
+            'position': [0, -1.29, fantasma_tz],
+            'color': [0.9, 0.9, 0.9],
+            'constant': 1.0,
+            'linear': 0.06,
+            'quadratic': 0.02
+        }
+        fantasma_model_args = dict(
+            t_x=fantasma['position'][0],
+            t_y=fantasma['position'][1],
+            t_z=fantasma['position'][2],
+            r_y=fantasma_rot_y,
+            s_x=0.5, s_y=0.5, s_z=0.5
+        )
+        slice_vertices_fantasma = light_source_manager.get_vertices_slice(obj_index=3)
+        model_objeto(*slice_vertices_fantasma, LIGHT_SOURCE_SHADER.getProgram(), **fantasma_model_args)
+        desenha_objeto(*slice_vertices_fantasma, LIGHT_SOURCE_SHADER, texture_id=11)
+        loadLightSourceAttributes(**fantasma, index=3)
 
         ## VIEW
         cameraPos += cameraVel * deltaTime

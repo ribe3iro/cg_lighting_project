@@ -19,7 +19,7 @@ struct ReflectionCoeff {
 	float ns;
 };
 
-#define NR_POINT_LIGHTS 3
+#define NR_POINT_LIGHTS 4
 
 in vec2 texture_coord;
 in vec3 frag_pos;
