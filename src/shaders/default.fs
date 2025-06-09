@@ -17,8 +17,8 @@ struct ReflectionCoeff {
 in vec2 texture_coord;
 in vec3 frag_pos;
 in vec3 normal;
-in vec3 view_pos;
 
+uniform vec3 view_pos;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 uniform ReflectionCoeff reflectionCoeff;
 

@@ -620,22 +620,20 @@ if __name__ == '__main__':
             desenha_objeto(*slice_vertices_haunter, DEFAULT_SHADER, texture_id=15)
 
         tamanho_muro = 4
-
-        for j in Z_LIMIT:
+        slice_vertices_muro = obj_manager.get_vertices_slice(obj_index=13)
+        for j_index, j in enumerate(Z_LIMIT):
             for i in range(X_LIMIT[0], X_LIMIT[1], tamanho_muro):
-                slice_vertices_muro= obj_manager.get_vertices_slice(obj_index=13)
-                model_objeto(*slice_vertices_muro, DEFAULT_SHADER.getProgram(),t_x=i, t_y=0.4, t_z=j)
+                model_objeto(*slice_vertices_muro, DEFAULT_SHADER.getProgram(),t_x=i, t_y=0.4, t_z=j, r_y=(180 if j_index == 1 else 0))
                 desenha_objeto(*slice_vertices_muro, DEFAULT_SHADER, texture_id=16)
         
-        for j in X_LIMIT:
+        for j_index, j in enumerate(X_LIMIT):
             for i in range(Z_LIMIT[0], Z_LIMIT[1]+ tamanho_muro, tamanho_muro):
-                slice_vertices_muro= obj_manager.get_vertices_slice(obj_index=13)
-                model_objeto(*slice_vertices_muro, DEFAULT_SHADER.getProgram(),t_x=j, t_y=0.4, t_z=i, r_y=90)
+                model_objeto(*slice_vertices_muro, DEFAULT_SHADER.getProgram(),t_x=j, t_y=0.4, t_z=i, r_y=(270 if j_index == 1 else 90))
                 desenha_objeto(*slice_vertices_muro, DEFAULT_SHADER, texture_id=16)
 
-        slice_vertices_muro= obj_manager.get_vertices_slice(obj_index=14)
-        model_objeto(*slice_vertices_muro, DEFAULT_SHADER.getProgram(),t_x=5, t_y=-1.6,t_z=-32.4,r_y=90, s_x=0.01, s_y=0.01, s_z=0.01)
-        desenha_objeto(*slice_vertices_muro, DEFAULT_SHADER, texture_id=17)
+        slice_vertices_lapide = obj_manager.get_vertices_slice(obj_index=14)
+        model_objeto(*slice_vertices_lapide, DEFAULT_SHADER.getProgram(),t_x=5, t_y=-1.6,t_z=-32.4,r_y=90, s_x=0.01, s_y=0.01, s_z=0.01)
+        desenha_objeto(*slice_vertices_lapide, DEFAULT_SHADER, texture_id=17)
 
         # light sources
         LIGHT_SOURCE_SHADER.use()
