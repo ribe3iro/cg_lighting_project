@@ -439,11 +439,14 @@ if __name__ == '__main__':
     mostrar_corpo = False
 
     # função auxiliar
-    def loadLightSourceAttributes(position, color, index):
+    def loadLightSourceAttributes(position, color, constant, linear, quadratic, index):
         DEFAULT_SHADER.use()
 
         DEFAULT_SHADER.setVec3(f'pointLights[{index}].position', *position)
         DEFAULT_SHADER.setVec3(f'pointLights[{index}].color', *color)
+        DEFAULT_SHADER.setFloat(f'pointLights[{index}].decay.constant', constant)
+        DEFAULT_SHADER.setFloat(f'pointLights[{index}].decay.linear', linear)
+        DEFAULT_SHADER.setFloat(f'pointLights[{index}].decay.quadratic', quadratic)
         
         LIGHT_SOURCE_SHADER.use()
 
@@ -639,22 +642,21 @@ if __name__ == '__main__':
 
         olhos = {
             'position': [haunter_x, 0, haunter_z-10],
-            'color': [1,1,1]
+            'color': [1,1,1],
+            'constant': 1.0,
+            'linear': 0.06,
+            'quadratic': 0.02
         }
-        olhos['model_args'] = dict(
+        olhos_model_args = dict(
             t_x=olhos['position'][0],
             t_y=olhos['position'][1],
             t_z=olhos['position'][2],
             r_y=haunter_rot_y
         )
         slice_vertices_olhos = light_source_manager.get_vertices_slice(obj_index=0)
-        model_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER.getProgram(), **olhos['model_args'])
+        model_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER.getProgram(), **olhos_model_args)
         desenha_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER, texture_id=14, light_source=True)
-        loadLightSourceAttributes(
-            position=olhos['position'],
-            color=olhos['color'],
-            index=0
-        )
+        loadLightSourceAttributes(**olhos, index=0)
 
         ## VIEW
         cameraPos += cameraVel * deltaTime
