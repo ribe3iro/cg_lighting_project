@@ -62,6 +62,9 @@ class Shader:
     # ------------------------------------------------------------------------
     def setFloat(self, name: str, value: float) -> None:
         glUniform1f(glGetUniformLocation(self.ID, name), value)
+    # ------------------------------------------------------------------------
+    def setVec3(self, name, *args):
+        glUniform3f(glGetUniformLocation(self.ID, name), *args)
 
     # utility function for checking shader compilation/linking errors.
     # ------------------------------------------------------------------------

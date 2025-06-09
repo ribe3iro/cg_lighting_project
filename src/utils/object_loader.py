@@ -5,12 +5,11 @@ from PIL import Image
 def read_obj_from_file(filename):
     """Reads a Wavefront OBJ file. """
     obj = {
-        'vertices': [],
+        'positions': [],
         'texture_coords': [],
+        'normals': [],
         'faces': []
     }
-
-    material = None
 
     # abre o arquivo obj para leitura
     for line in open(filename, "r"): ## para cada linha do arquivo .obj
@@ -18,29 +17,32 @@ def read_obj_from_file(filename):
         values = line.split() # quebra a linha por espaço
         if not values: continue
 
-        ### recuperando vertices
+        ### recuperando posição dos vértices
         if values[0] == 'v':
-            obj['vertices'].append(values[1:4])
+            obj['positions'].append(values[1:4])
+
+        ### recuperando normais
+        if values[0] == 'vn':
+            obj['normals'].append(values[1:4])
 
         ### recuperando coordenadas de textura
         elif values[0] == 'vt':
             obj['texture_coords'].append(values[1:3])
 
         ### recuperando faces
-        elif values[0] in ('usemtl', 'usemat'):
-            material = values[1]
         elif values[0] == 'f':
-            face = []
-            face_texture = []
-            for v in values[1:]:
-                w = v.split('/')
-                face.append(int(w[0]))
-                if len(w) >= 2 and len(w[1]) > 0:
-                    face_texture.append(int(w[1]))
-                else:
-                    face_texture.append(0)
+            vertice_pos_indices = []
+            texture_coord_indices = []
+            normal_indices = []
+            for vertex in values[1:]:
+                vertex_attributes = vertex.split('/')
+                vertice_pos_indices.append(int(vertex_attributes[0]))
+                if len(vertex_attributes) > 1:
+                    texture_coord_indices.append(int(vertex_attributes[1]))
+                if len(vertex_attributes) > 2:
+                    normal_indices.append(int(vertex_attributes[2]))
 
-            obj['faces'].append((face, face_texture, material))
+            obj['faces'].append(dict(vertex_pos=vertice_pos_indices, texture_coord=texture_coord_indices, normal=normal_indices))
 
     return obj
 
@@ -96,8 +98,7 @@ def circular_sliding_window_of_three(arr):
 
 class ObjManager:
     def __init__(self):
-        self.vertices = []
-        self.textures_coord_list = []
+        self.objects = []
         self.curr_texture_id = 1
 
     # --------------------------------------------------------
@@ -105,19 +106,24 @@ class ObjManager:
     def load_obj(self, objFile):
         modelo = read_obj_from_file(objFile)
 
-        faces_visited = []
-        vertices_list = []
-        textures_coord_list = []
-        for face in modelo['faces']:
-            if face[2] not in faces_visited:
-                faces_visited.append(face[2])
-            for vertice_id in circular_sliding_window_of_three(face[0]):
-                vertices_list.append(modelo['vertices'][vertice_id - 1])
-            for texture_id in circular_sliding_window_of_three(face[1]):
-                textures_coord_list.append(modelo['texture_coords'][texture_id - 1])
+        new_object = {
+            'positions': [],
+            'texture_coords': [],
+            'normals': [],
+            'num_vertices': 0
+        }
 
-        self.vertices.append(vertices_list)
-        self.textures_coord_list += textures_coord_list
+        for face in modelo['faces']:
+            for position_id in circular_sliding_window_of_three(face['vertex_pos']):
+                new_object['positions'] += modelo['positions'][position_id - 1]
+            for texture_id in circular_sliding_window_of_three(face['texture_coord']):
+                new_object['texture_coords'] += modelo['texture_coords'][texture_id - 1]
+            for normal_id in circular_sliding_window_of_three(face['normal']):
+                new_object['normals'] += modelo['normals'][normal_id - 1]
+        # três vértices por face
+        new_object['num_vertices'] = len(new_object['positions']) // 3
+
+        self.objects.append(new_object)
 
     # --------------------------------------------------------
 
@@ -131,22 +137,31 @@ class ObjManager:
 
     # --------------------------------------------------------
 
-    def get_all_vertices(self):
-        all_vertices = []
-        for vertices_list in self.vertices:
-            all_vertices += vertices_list
-        return all_vertices
+    def get_attribute_arrays(self):
+        all_vertices = {
+            'positions': [],
+            'texture_coords': [],
+            'normals': [],
+        }
+        num_vertices = 0
+
+        for obj in self.objects:
+            for attribute in all_vertices:
+                all_vertices[attribute] += obj[attribute]
+            num_vertices += obj['num_vertices']
+        
+        return all_vertices, num_vertices
 
     # --------------------------------------------------------
 
     def get_vertices_slice(self, obj_index):
         acum_len = 0
         for i in range(obj_index):
-            acum_len += len(self.vertices[i])
+            acum_len += self.objects[i]['num_vertices']
         
         initial_vertex_index = acum_len
-        vertices_len = len(self.vertices[obj_index])
+        num_vertices = self.objects[obj_index]['num_vertices']
 
-        return initial_vertex_index, vertices_len
+        return initial_vertex_index, num_vertices
 
 # --------------------------------------------------------

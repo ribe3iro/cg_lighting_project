@@ -1,14 +1,20 @@
 #version 330 core
 
-attribute vec3 position;
-attribute vec2 texture_coord;
-varying vec2 out_texture;
+in vec3 aPosition;
+in vec2 aTexture_coord;
+in vec3 aNormal;
+
+out vec2 texture_coord;
+out vec3 frag_pos;
+out vec3 normal;
 		
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;        
 
 void main(){
-	gl_Position = projection * view * model * vec4(position,1.0);
-	out_texture = vec2(texture_coord);
+	gl_Position = projection * view * model * vec4(aPosition,1.0);
+	texture_coord = vec2(aTexture_coord);
+	frag_pos = vec3(  model * vec4(aPosition, 1.0));
+	normal = vec3( model *vec4(aNormal, 1.0));
 }

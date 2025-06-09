@@ -1,5 +1,5 @@
 """
-Projeto 2 - Navegação em ambientes
+Projeto 3 - Iluminação de ambientes
 Disciplina SCC0250 - Computação Gráfica
 
 ----------------------------------------------------------
@@ -36,16 +36,24 @@ def model_objeto(vertice_inicial, num_vertices, program, t_x=0, t_y=0, t_z=0, s_
 
 # --------------------------------------------------------
 
-def desenha_objeto(vertice_inicial, num_vertices, texture_id=-1, cube_map=False):
-    # textura
-    if texture_id < 0:
-        return
-    
-    if cube_map:
-        # glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id)
+def desenha_objeto(vertice_inicial, num_vertices, shader, color=None, texture_id=-1, ka=0.2, kd=0.8, kn=0.3, ns=10, cube_map=False, light_source=False):
+    # texture
+    if texture_id >= 0:
+        if cube_map:
+            glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id)
+        else:
+            glBindTexture(GL_TEXTURE_2D, texture_id)
+    # color
+    elif color is not None:
+        shader.setVec3('color', color[0], color[1], color[2])
     else:
-        glBindTexture(GL_TEXTURE_2D, texture_id)
+        return
+
+    if not light_source:
+        shader.setFloat('reflectionCoeff.ka', ka)
+        shader.setFloat('reflectionCoeff.kd', kd)
+        shader.setFloat('reflectionCoeff.kn', kn)
+        shader.setFloat('reflectionCoeff.ns', ns)
     
     # desenha o objeto
     glDrawArrays(GL_TRIANGLES, vertice_inicial, num_vertices) ## renderizando
@@ -194,6 +202,8 @@ def scroll_event(window, xoffset, yoffset):
 if __name__ == '__main__':
     ### CONSTANTES IMPORTANTES
     ABSOLUTE_ROOT_PATH, _ = os.path.split(os.path.dirname(os.path.realpath(__file__)))
+    OBJECTS_PATH = path_join(ABSOLUTE_ROOT_PATH, 'objetos')
+    TEXTURES_PATH = path_join(ABSOLUTE_ROOT_PATH, 'texturas')
     LARGURA_JANELA = 700
     ALTURA_JANELA = 700
 
@@ -219,7 +229,11 @@ if __name__ == '__main__':
         path_join(shaders_path, 'default.vs'),
         path_join(shaders_path, 'default.fs')
     )
-    DEFAULT_SHADER.use()
+
+    LIGHT_SOURCE_SHADER = Shader(
+        path_join(shaders_path, 'default.vs'),
+        path_join(shaders_path, 'light_source.fs')
+    )
 
     SKYBOX_SHADER = Shader(
         path_join(shaders_path, 'skybox.vs'),
@@ -276,8 +290,8 @@ if __name__ == '__main__':
     stride = allSkyboxVertices.strides[0]
     offset = ctypes.c_void_p(0)
     loc_vertices = glGetAttribLocation(SKYBOX_SHADER.getProgram(), "aPos")
-    glVertexAttribPointer(loc_vertices, 3, GL_FLOAT, False, stride, offset)
     glEnableVertexAttribArray(loc_vertices)
+    glVertexAttribPointer(loc_vertices, 3, GL_FLOAT, False, stride, offset)
 
     # texturas
     skybox_root_path = path_join(ABSOLUTE_ROOT_PATH, 'texturas', 'skybox')
@@ -292,76 +306,104 @@ if __name__ == '__main__':
     obj_manager = ObjManager()
     skyboxTexture = obj_manager.load_texture(skybox_textures_list, cube_map=True)
 
+    ## FONTES DE LUZ
+
+    light_source_manager = ObjManager()
+
+    # vértices
+    light_source_manager.load_obj(path_join(OBJECTS_PATH, 'caixa.obj'))
+
+    # vec3 aPosition
+    attributes, num_vertices = light_source_manager.get_attribute_arrays()
+
+    vertices = np.zeros((num_vertices, 3), dtype=np.float32)
+    vertices[:, 0:3] = np.reshape(attributes['positions'], (-1, 3))
+    
+    vertices = vertices.flatten()
+
+    # carregando na GPU
+    light_sourcesVAO = glGenVertexArrays(1)
+    light_sourcesVBO = glGenBuffers(1)
+
+    glBindVertexArray(light_sourcesVAO)
+    glBindBuffer(GL_ARRAY_BUFFER, light_sourcesVBO)
+
+    glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
+
+    loc_pos = glGetAttribLocation(LIGHT_SOURCE_SHADER.getProgram(), "aPosition")
+    glEnableVertexAttribArray(loc_pos)
+    glVertexAttribPointer(loc_pos, 3, GL_FLOAT, False, 3 * glm.sizeof(glm.float32), ctypes.c_void_p(0))
+
     ## DEMAIS OBJETOS
     DEFAULT_SHADER.use()
 
-    objects_path = path_join(ABSOLUTE_ROOT_PATH, 'objetos')
+    # vértices
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'chao.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'caixa.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'casa.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'mesa_escritorio.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'mesa.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'cama.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'machado.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'papel.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'tronco.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'fantasma.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'fake.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'olhos.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'haunter.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'muro.obj'))
+    obj_manager.load_obj(path_join(OBJECTS_PATH, 'lapide.obj'))
+
+    # texturas
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'terra.png'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'tijolos.jpg'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'casa.png'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'mesa_escritorio.jpg'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'mesa.png'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'cama.png'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'machado.jpg'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'papel.png'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'tronco.jpg'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'fantasma.png'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'fake_1.png'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'fake_2.png'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'olhos.png'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'haunter.png'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'muro.jpg'))
+    obj_manager.load_texture(path_join(TEXTURES_PATH, 'lapide.jpeg'))
+
+    # vec3 aPosition
+    # vec2 aTexture_coord
+    # vec3 aNormal
+    attributes, num_vertices = obj_manager.get_attribute_arrays()
+
+    vertices = np.zeros((num_vertices, 3*2*3), dtype=np.float32)
+    vertices[:, 0:3] = np.reshape(attributes['positions'], (-1, 3))
+    vertices[:, 3:5] = np.reshape(attributes['texture_coords'], (-1, 2))
+    vertices[:, 5:8] = np.reshape(attributes['normals'], (-1, 3))
     
-    obj_manager.load_obj(path_join(objects_path, 'chao.obj'))
-    obj_manager.load_obj(path_join(objects_path, 'caixa.obj'))
-    obj_manager.load_obj(path_join(objects_path, 'casa.obj'))
-    obj_manager.load_obj(path_join(objects_path, 'mesa_escritorio.obj'))
-    obj_manager.load_obj(path_join(objects_path, 'mesa.obj'))
-    obj_manager.load_obj(path_join(objects_path, 'cama.obj'))
-    obj_manager.load_obj(path_join(objects_path, 'machado.obj'))
-    obj_manager.load_obj(path_join(objects_path, 'papel.obj'))
-    obj_manager.load_obj(path_join(objects_path, 'tronco.obj'))
-    obj_manager.load_obj(path_join(objects_path, 'fantasma.obj'))
-    obj_manager.load_obj(path_join(objects_path, 'fake.obj'))
-    obj_manager.load_obj(path_join(objects_path, 'olhos.obj'))
-    obj_manager.load_obj(path_join(objects_path, 'haunter.obj'))
-    obj_manager.load_obj(path_join(objects_path, 'muro.obj'))
-    obj_manager.load_obj(path_join(objects_path, 'lapide.obj'))
+    vertices = vertices.flatten()
 
     # carregando na GPU
     objectsVAO = glGenVertexArrays(1)
     objectsVBO = glGenBuffers(1)
 
     glBindVertexArray(objectsVAO)
-
-    all_vertices = obj_manager.get_all_vertices()
-    vertices = np.zeros(len(all_vertices), [("position", np.float32, 3)])
-    vertices['position'] = all_vertices
     glBindBuffer(GL_ARRAY_BUFFER, objectsVBO)
+
     glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
-    stride = vertices.strides[0]
-    offset = ctypes.c_void_p(0)
-    loc_vertices = glGetAttribLocation(DEFAULT_SHADER.getProgram(), "position")
-    glEnableVertexAttribArray(loc_vertices)
-    glVertexAttribPointer(loc_vertices, 3, GL_FLOAT, False, stride, offset)
 
-    ## texturas
-    textures_path = path_join(ABSOLUTE_ROOT_PATH, 'texturas')
+    loc_pos = glGetAttribLocation(DEFAULT_SHADER.getProgram(), "aPosition")
+    glEnableVertexAttribArray(loc_pos)
+    glVertexAttribPointer(loc_pos, 3, GL_FLOAT, False, 3*2*3 * glm.sizeof(glm.float32), ctypes.c_void_p(0))
 
-    obj_manager.load_texture(path_join(textures_path, 'terra.png'))
-    obj_manager.load_texture(path_join(textures_path, 'tijolos.jpg'))
-    obj_manager.load_texture(path_join(textures_path, 'casa.png'))
-    obj_manager.load_texture(path_join(textures_path, 'mesa_escritorio.jpg'))
-    obj_manager.load_texture(path_join(textures_path, 'mesa.png'))
-    obj_manager.load_texture(path_join(textures_path, 'cama.png'))
-    obj_manager.load_texture(path_join(textures_path, 'machado.jpg'))
-    obj_manager.load_texture(path_join(textures_path, 'papel.png'))
-    obj_manager.load_texture(path_join(textures_path, 'tronco.jpg'))
-    obj_manager.load_texture(path_join(textures_path, 'fantasma.png'))
-    obj_manager.load_texture(path_join(textures_path, 'fake_1.png'))
-    obj_manager.load_texture(path_join(textures_path, 'fake_2.png'))
-    obj_manager.load_texture(path_join(textures_path, 'olhos.png'))
-    obj_manager.load_texture(path_join(textures_path, 'haunter.png'))
-    obj_manager.load_texture(path_join(textures_path, 'muro.jpg'))
-    obj_manager.load_texture(path_join(textures_path, 'lapide.jpeg'))
+    loc_texture = glGetAttribLocation(DEFAULT_SHADER.getProgram(), "aTexture_coord")
+    glEnableVertexAttribArray(loc_texture)
+    glVertexAttribPointer(loc_texture, 2, GL_FLOAT, False, 3*2*3 * glm.sizeof(glm.float32), ctypes.c_void_p(3 * glm.sizeof(glm.float32)))
 
-    # carregando na GPU
-    all_texture_coord = obj_manager.textures_coord_list
-    textures = np.zeros(len(all_texture_coord), [("position", np.float32, 2)])
-    textures['position'] = all_texture_coord
-
-    glBindBuffer(GL_ARRAY_BUFFER, glGenBuffers(1))
-    glBufferData(GL_ARRAY_BUFFER, textures.nbytes, textures, GL_STATIC_DRAW)
-    stride = textures.strides[0]
-    offset = ctypes.c_void_p(0)
-    loc_texture_coord = glGetAttribLocation(DEFAULT_SHADER.getProgram(), "texture_coord")
-    glEnableVertexAttribArray(loc_texture_coord)
-    glVertexAttribPointer(loc_texture_coord, 2, GL_FLOAT, False, stride, offset)
+    loc_normal = glGetAttribLocation(DEFAULT_SHADER.getProgram(), "aNormal")
+    glEnableVertexAttribArray(loc_normal)
+    glVertexAttribPointer(loc_normal, 3, GL_FLOAT, False, 3*2*3 * glm.sizeof(glm.float32), ctypes.c_void_p((3+2) * glm.sizeof(glm.float32)))
 
     # variáveis para a movimentação da câmera
     CAMERA_HEIGHT = -0.4
@@ -442,6 +484,39 @@ if __name__ == '__main__':
         
         glDepthFunc(GL_LESS)
 
+        ## LIGHT SOURCES
+        LIGHT_SOURCE_SHADER.use()
+        glBindVertexArray(light_sourcesVAO)
+        glBindBuffer(GL_ARRAY_BUFFER, light_sourcesVBO)
+
+        def loadLightSourceAttributes(position, color, index):
+            DEFAULT_SHADER.use()
+
+            DEFAULT_SHADER.setVec3(f'pointLights[{index}].position', *position)
+            DEFAULT_SHADER.setVec3(f'pointLights[{index}].color', *color)
+            
+            LIGHT_SOURCE_SHADER.use()
+
+        cubo = {
+            'position': [0, 1, -5],
+            'color': [1,1,1]
+        }
+        cubo['model_args'] = dict(
+            t_x=cubo['position'][0],
+            t_y=cubo['position'][1],
+            t_z=cubo['position'][2],
+            s_x=0.5,
+            s_y=0.5, 
+            s_z=0.5,
+        )
+        slice_vertices_cubo = light_source_manager.get_vertices_slice(obj_index=0)
+        model_objeto(*slice_vertices_cubo, LIGHT_SOURCE_SHADER.getProgram(), **cubo['model_args'])
+        desenha_objeto(*slice_vertices_cubo, LIGHT_SOURCE_SHADER, color=cubo['color'], light_source=True)
+        loadLightSourceAttributes(
+            position=cubo['position'],
+            color=cubo['color'],
+            index=0
+        )
 
         ## TRANSFORMAÇÕES
 
@@ -449,34 +524,39 @@ if __name__ == '__main__':
         DEFAULT_SHADER.use()
         glBindVertexArray(objectsVAO)
         glBindBuffer(GL_ARRAY_BUFFER, objectsVBO)
+
         slice_vertices_chao = obj_manager.get_vertices_slice(obj_index=0)
         model_objeto(*slice_vertices_chao, DEFAULT_SHADER.getProgram(), t_z=-15, t_y=-1.6, s_x=35, s_z=25)
-        desenha_objeto(*slice_vertices_chao, texture_id=2)
+        desenha_objeto(
+            *slice_vertices_chao,
+            shader=DEFAULT_SHADER,
+            texture_id=2
+        )
 
         # slice_vertices_caixa2 = obj_manager.get_vertices_slice(obj_index=1)
         # model_objeto(*slice_vertices_caixa2, DEFAULT_SHADER.getProgram(), t_x=1, t_z=-10)
-        # desenha_objeto(*slice_vertices_caixa2, texture_id=3)
+        # desenha_objeto(*slice_vertices_caixa2, DEFAULT_SHADER, texture_id=3)
 
         slice_vertices_casa = obj_manager.get_vertices_slice(obj_index=2)
         model_objeto(*slice_vertices_casa, DEFAULT_SHADER.getProgram(), t_x=1, t_y=-2, t_z=-30, r_y=-90, s_x=2, s_y=2, s_z=2)
-        desenha_objeto(*slice_vertices_casa, texture_id=4)
+        desenha_objeto(*slice_vertices_casa, DEFAULT_SHADER, texture_id=4)
 
         slice_vertices_mesa_escritorio = obj_manager.get_vertices_slice(obj_index=3)
         model_objeto(*slice_vertices_mesa_escritorio, DEFAULT_SHADER.getProgram(), t_x=-1.9, t_y=-1.5, t_z=-32, r_x=90, r_y=180, r_z=-90, s_x=0.01, s_y=0.01, s_z=0.01)
-        desenha_objeto(*slice_vertices_mesa_escritorio, texture_id=5)
+        desenha_objeto(*slice_vertices_mesa_escritorio, DEFAULT_SHADER, texture_id=5)
 
         slice_vertices_mesa = obj_manager.get_vertices_slice(obj_index=4)
         model_objeto(*slice_vertices_mesa, DEFAULT_SHADER.getProgram(), t_y=-1.55, t_z=-28.58, r_y=45, s_x=0.55, s_y=0.55, s_z=0.55)
-        desenha_objeto(*slice_vertices_mesa, texture_id=6)
+        desenha_objeto(*slice_vertices_mesa, DEFAULT_SHADER, texture_id=6)
 
         slice_vertices_cama = obj_manager.get_vertices_slice(obj_index=5)
         model_objeto(*slice_vertices_cama, DEFAULT_SHADER.getProgram(), t_x=3.6, t_y=-1.56, t_z=-31.9, r_y=-90, s_x=0.007, s_y=0.007, s_z=0.007)
-        desenha_objeto(*slice_vertices_cama, texture_id=7)
+        desenha_objeto(*slice_vertices_cama, DEFAULT_SHADER, texture_id=7)
         
         machadoAngulo += (machadoRotacao * deltaTime * 480)
         slice_vertices_machado = obj_manager.get_vertices_slice(obj_index=6)
         model_objeto(*slice_vertices_machado, DEFAULT_SHADER.getProgram(), t_y=-0.764, t_z=-28.75, r_y=machadoAngulo)
-        desenha_objeto(*slice_vertices_machado, texture_id=8)
+        desenha_objeto(*slice_vertices_machado, DEFAULT_SHADER, texture_id=8)
         
         if pegandoPapel:
             if not papelVisivel:
@@ -496,20 +576,20 @@ if __name__ == '__main__':
             t_x=papelPos.x, t_y=papelPos.y, t_z=papelPos.z, 
             s_x=papelEscala, s_y=papelEscala, s_z=papelEscala, 
             r_y=85)
-        desenha_objeto(*slice_vertices_papel, texture_id=9)
+        desenha_objeto(*slice_vertices_papel, DEFAULT_SHADER, texture_id=9)
         
         slice_vertices_tronco1 = obj_manager.get_vertices_slice(obj_index=8)
         model_objeto(*slice_vertices_tronco1, DEFAULT_SHADER.getProgram(), t_x=-5, t_y=-2.3)
-        desenha_objeto(*slice_vertices_tronco1, texture_id=10)
+        desenha_objeto(*slice_vertices_tronco1, DEFAULT_SHADER, texture_id=10)
         slice_vertices_tronco2 = obj_manager.get_vertices_slice(obj_index=8)
         model_objeto(*slice_vertices_tronco2, DEFAULT_SHADER.getProgram(), t_x=-25, t_y=-2.3, t_z=-20)
-        desenha_objeto(*slice_vertices_tronco2, texture_id=10)
+        desenha_objeto(*slice_vertices_tronco2, DEFAULT_SHADER, texture_id=10)
         slice_vertices_tronco3 = obj_manager.get_vertices_slice(obj_index=8)
         model_objeto(*slice_vertices_tronco3, DEFAULT_SHADER.getProgram(), t_x=25, t_y=-2.3, t_z=-15)
-        desenha_objeto(*slice_vertices_tronco3, texture_id=10)
+        desenha_objeto(*slice_vertices_tronco3, DEFAULT_SHADER, texture_id=10)
         slice_vertices_tronco4 = obj_manager.get_vertices_slice(obj_index=8)
         model_objeto(*slice_vertices_tronco4, DEFAULT_SHADER.getProgram(), t_x=15, t_y=-2.3, t_z=-35)
-        desenha_objeto(*slice_vertices_tronco4, texture_id=10)
+        desenha_objeto(*slice_vertices_tronco4, DEFAULT_SHADER, texture_id=10)
 
         fantasma_tz = -28.6
 
@@ -518,7 +598,7 @@ if __name__ == '__main__':
         fantasma_rot_y = math.degrees(math.atan2(fantasma_dx, fantasma_dz))
         slice_vertices_fantasma = obj_manager.get_vertices_slice(obj_index=9)
         model_objeto(*slice_vertices_fantasma, DEFAULT_SHADER.getProgram(), t_y=-1.29, t_z=fantasma_tz, r_y=fantasma_rot_y, s_x=0.5, s_y=0.5, s_z=0.5)
-        desenha_objeto(*slice_vertices_fantasma, texture_id=11)
+        desenha_objeto(*slice_vertices_fantasma, DEFAULT_SHADER, texture_id=11)
 
         n_fake_arvores = 7
         raio = 50
@@ -537,7 +617,7 @@ if __name__ == '__main__':
 
             slice_vertices_fake = obj_manager.get_vertices_slice(obj_index=10)
             model_objeto(*slice_vertices_fake, DEFAULT_SHADER.getProgram(), t_x=fake_tx, t_y=-2, t_z=fake_tz, r_y=rot_y, s_x=8, s_y=8, s_z=8)
-            desenha_objeto(*slice_vertices_fake, texture_id=12+(i%2))
+            desenha_objeto(*slice_vertices_fake, DEFAULT_SHADER, texture_id=12+(i%2))
 
         escala = 15.0
 
@@ -550,12 +630,12 @@ if __name__ == '__main__':
         
         slice_vertices_olhos = obj_manager.get_vertices_slice(obj_index=11)
         model_objeto(*slice_vertices_olhos, DEFAULT_SHADER.getProgram(),t_x=haunter_x, t_z=haunter_z-10, r_y=haunter_rot_y)
-        desenha_objeto(*slice_vertices_olhos, texture_id=14)
+        desenha_objeto(*slice_vertices_olhos, DEFAULT_SHADER, texture_id=14)
         
         if mostrar_corpo:
             slice_vertices_haunter = obj_manager.get_vertices_slice(obj_index=12)
             model_objeto(*slice_vertices_haunter, DEFAULT_SHADER.getProgram(),t_x=haunter_x, t_z=haunter_z-10, r_y=haunter_rot_y)
-            desenha_objeto(*slice_vertices_haunter, texture_id=15)
+            desenha_objeto(*slice_vertices_haunter, DEFAULT_SHADER, texture_id=15)
 
         tamanho_muro = 4
 
@@ -563,19 +643,19 @@ if __name__ == '__main__':
             for i in range(X_LIMIT[0], X_LIMIT[1], tamanho_muro):
                 slice_vertices_muro= obj_manager.get_vertices_slice(obj_index=13)
                 model_objeto(*slice_vertices_muro, DEFAULT_SHADER.getProgram(),t_x=i, t_y=0.4, t_z=j)
-                desenha_objeto(*slice_vertices_muro, texture_id=16)
+                desenha_objeto(*slice_vertices_muro, DEFAULT_SHADER, texture_id=16)
         
         for j in X_LIMIT:
             for i in range(Z_LIMIT[0], Z_LIMIT[1]+ tamanho_muro, tamanho_muro):
                 slice_vertices_muro= obj_manager.get_vertices_slice(obj_index=13)
                 model_objeto(*slice_vertices_muro, DEFAULT_SHADER.getProgram(),t_x=j, t_y=0.4, t_z=i, r_y=90)
-                desenha_objeto(*slice_vertices_muro, texture_id=16)
+                desenha_objeto(*slice_vertices_muro, DEFAULT_SHADER, texture_id=16)
 
         slice_vertices_muro= obj_manager.get_vertices_slice(obj_index=14)
         model_objeto(*slice_vertices_muro, DEFAULT_SHADER.getProgram(),t_x=5, t_y=-1.6,t_z=-32.4,r_y=90, s_x=0.01, s_y=0.01, s_z=0.01)
-        desenha_objeto(*slice_vertices_muro, texture_id=17)
+        desenha_objeto(*slice_vertices_muro, DEFAULT_SHADER, texture_id=17)
 
-        # view
+        ## VIEW
         cameraPos += cameraVel * deltaTime
         cameraVel = glm.vec3(0.0, 0.0, 0.0)
 
@@ -596,23 +676,40 @@ if __name__ == '__main__':
             cameraPos.z = Z_LIMIT[1] - 0.5
 
         mat_view = view(cameraPos, cameraFront, cameraUp)
+
+        # default
+        DEFAULT_SHADER.use()
         loc_view = glGetUniformLocation(DEFAULT_SHADER.getProgram(), "view")
         glUniformMatrix4fv(loc_view, 1, GL_TRUE, np.array(mat_view))
 
+        DEFAULT_SHADER.setVec3('view_pos', cameraPos[0], cameraPos[1], cameraPos[2])
 
-        # projection
-        mat_projection = projection(fov, LARGURA_JANELA, ALTURA_JANELA)
-        loc_projection = glGetUniformLocation(DEFAULT_SHADER.getProgram(), "projection")
-        glUniformMatrix4fv(loc_projection, 1, GL_TRUE, np.array(mat_projection))
+        # light sources
+        LIGHT_SOURCE_SHADER.use()
+        loc_projection = glGetUniformLocation(LIGHT_SOURCE_SHADER.getProgram(), "view")
+        glUniformMatrix4fv(loc_projection, 1, GL_TRUE, np.array(mat_view))
 
-        # SKYBOX (view e projection)
+        # skybox
         SKYBOX_SHADER.use()
-
-        # view
         loc_projection = glGetUniformLocation(SKYBOX_SHADER.getProgram(), "view")
         glUniformMatrix4fv(loc_projection, 1, GL_TRUE, np.array(glm.mat4(glm.mat3(mat_view))))
 
-        # projection
+
+        ## PROJECTION
+        mat_projection = projection(fov, LARGURA_JANELA, ALTURA_JANELA)
+
+        # default
+        DEFAULT_SHADER.use()
+        loc_projection = glGetUniformLocation(DEFAULT_SHADER.getProgram(), "projection")
+        glUniformMatrix4fv(loc_projection, 1, GL_TRUE, np.array(mat_projection))
+
+        # light sources
+        LIGHT_SOURCE_SHADER.use()
+        loc_projection = glGetUniformLocation(LIGHT_SOURCE_SHADER.getProgram(), "projection")
+        glUniformMatrix4fv(loc_projection, 1, GL_TRUE, np.array(mat_projection))
+
+        # skybox
+        SKYBOX_SHADER.use()
         loc_projection = glGetUniformLocation(SKYBOX_SHADER.getProgram(), "projection")
         glUniformMatrix4fv(loc_projection, 1, GL_TRUE, np.array(mat_projection))
 
