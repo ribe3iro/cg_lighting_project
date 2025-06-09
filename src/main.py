@@ -39,13 +39,14 @@ def model_objeto(vertice_inicial, num_vertices, program, t_x=0, t_y=0, t_z=0, s_
 def desenha_objeto(vertice_inicial, num_vertices, shader, color=None, texture_id=-1, ka=0.2, kd=0.8, kn=0.3, ns=10, cube_map=False, light_source=False):
     # texture
     if texture_id >= 0:
+        shader.setVec3('color', *[0,0,0])
         if cube_map:
             glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id)
         else:
             glBindTexture(GL_TEXTURE_2D, texture_id)
     # color
     elif color is not None:
-        shader.setVec3('color', color[0], color[1], color[2])
+        shader.setVec3('color', *color)
     else:
         return
 
@@ -234,6 +235,8 @@ if __name__ == '__main__':
         path_join(shaders_path, 'default.vs'),
         path_join(shaders_path, 'light_source.fs')
     )
+    LIGHT_SOURCE_SHADER.use()
+    LIGHT_SOURCE_SHADER.setVec3('color', *[0,0,0])
 
     SKYBOX_SHADER = Shader(
         path_join(shaders_path, 'skybox.vs'),
@@ -311,13 +314,14 @@ if __name__ == '__main__':
     light_source_manager = ObjManager()
 
     # vértices
-    light_source_manager.load_obj(path_join(OBJECTS_PATH, 'caixa.obj'))
+    light_source_manager.load_obj(path_join(OBJECTS_PATH, 'olhos.obj'))
 
     # vec3 aPosition
     attributes, num_vertices = light_source_manager.get_attribute_arrays()
 
-    vertices = np.zeros((num_vertices, 3), dtype=np.float32)
+    vertices = np.zeros((num_vertices, 3*2), dtype=np.float32)
     vertices[:, 0:3] = np.reshape(attributes['positions'], (-1, 3))
+    vertices[:, 3:5] = np.reshape(attributes['texture_coords'], (-1, 2))
     
     vertices = vertices.flatten()
 
@@ -332,7 +336,11 @@ if __name__ == '__main__':
 
     loc_pos = glGetAttribLocation(LIGHT_SOURCE_SHADER.getProgram(), "aPosition")
     glEnableVertexAttribArray(loc_pos)
-    glVertexAttribPointer(loc_pos, 3, GL_FLOAT, False, 3 * glm.sizeof(glm.float32), ctypes.c_void_p(0))
+    glVertexAttribPointer(loc_pos, 3, GL_FLOAT, False, 3*2 * glm.sizeof(glm.float32), ctypes.c_void_p(0))
+
+    loc_texture = glGetAttribLocation(LIGHT_SOURCE_SHADER.getProgram(), "aTexture_coord")
+    glEnableVertexAttribArray(loc_texture)
+    glVertexAttribPointer(loc_texture, 2, GL_FLOAT, False, 3*2 * glm.sizeof(glm.float32), ctypes.c_void_p(3 * glm.sizeof(glm.float32)))
 
     ## DEMAIS OBJETOS
     DEFAULT_SHADER.use()
@@ -430,6 +438,15 @@ if __name__ == '__main__':
     haunter_t = 0.0
     mostrar_corpo = False
 
+    # função auxiliar
+    def loadLightSourceAttributes(position, color, index):
+        DEFAULT_SHADER.use()
+
+        DEFAULT_SHADER.setVec3(f'pointLights[{index}].position', *position)
+        DEFAULT_SHADER.setVec3(f'pointLights[{index}].color', *color)
+        
+        LIGHT_SOURCE_SHADER.use()
+
     # variáveis para os callbacks
     show_lines = False
     flying_state = False
@@ -484,43 +501,9 @@ if __name__ == '__main__':
         
         glDepthFunc(GL_LESS)
 
-        ## LIGHT SOURCES
-        LIGHT_SOURCE_SHADER.use()
-        glBindVertexArray(light_sourcesVAO)
-        glBindBuffer(GL_ARRAY_BUFFER, light_sourcesVBO)
+        ### TRANSFORMAÇÕES
 
-        def loadLightSourceAttributes(position, color, index):
-            DEFAULT_SHADER.use()
-
-            DEFAULT_SHADER.setVec3(f'pointLights[{index}].position', *position)
-            DEFAULT_SHADER.setVec3(f'pointLights[{index}].color', *color)
-            
-            LIGHT_SOURCE_SHADER.use()
-
-        cubo = {
-            'position': [0, 1, -5],
-            'color': [1,1,1]
-        }
-        cubo['model_args'] = dict(
-            t_x=cubo['position'][0],
-            t_y=cubo['position'][1],
-            t_z=cubo['position'][2],
-            s_x=0.5,
-            s_y=0.5, 
-            s_z=0.5,
-        )
-        slice_vertices_cubo = light_source_manager.get_vertices_slice(obj_index=0)
-        model_objeto(*slice_vertices_cubo, LIGHT_SOURCE_SHADER.getProgram(), **cubo['model_args'])
-        desenha_objeto(*slice_vertices_cubo, LIGHT_SOURCE_SHADER, color=cubo['color'], light_source=True)
-        loadLightSourceAttributes(
-            position=cubo['position'],
-            color=cubo['color'],
-            index=0
-        )
-
-        ## TRANSFORMAÇÕES
-
-        # model
+        ## MODEL
         DEFAULT_SHADER.use()
         glBindVertexArray(objectsVAO)
         glBindBuffer(GL_ARRAY_BUFFER, objectsVBO)
@@ -628,10 +611,6 @@ if __name__ == '__main__':
         haunter_dz = cameraPos.z - haunter_z
         haunter_rot_y = math.degrees(math.atan2(haunter_dx, haunter_dz))
         
-        slice_vertices_olhos = obj_manager.get_vertices_slice(obj_index=11)
-        model_objeto(*slice_vertices_olhos, DEFAULT_SHADER.getProgram(),t_x=haunter_x, t_z=haunter_z-10, r_y=haunter_rot_y)
-        desenha_objeto(*slice_vertices_olhos, DEFAULT_SHADER, texture_id=14)
-        
         if mostrar_corpo:
             slice_vertices_haunter = obj_manager.get_vertices_slice(obj_index=12)
             model_objeto(*slice_vertices_haunter, DEFAULT_SHADER.getProgram(),t_x=haunter_x, t_z=haunter_z-10, r_y=haunter_rot_y)
@@ -654,6 +633,30 @@ if __name__ == '__main__':
         slice_vertices_muro= obj_manager.get_vertices_slice(obj_index=14)
         model_objeto(*slice_vertices_muro, DEFAULT_SHADER.getProgram(),t_x=5, t_y=-1.6,t_z=-32.4,r_y=90, s_x=0.01, s_y=0.01, s_z=0.01)
         desenha_objeto(*slice_vertices_muro, DEFAULT_SHADER, texture_id=17)
+
+        # light sources
+        LIGHT_SOURCE_SHADER.use()
+        glBindVertexArray(light_sourcesVAO)
+        glBindBuffer(GL_ARRAY_BUFFER, light_sourcesVBO)
+
+        olhos = {
+            'position': [haunter_x, 0, haunter_z-10],
+            'color': [1,1,1]
+        }
+        olhos['model_args'] = dict(
+            t_x=olhos['position'][0],
+            t_y=olhos['position'][1],
+            t_z=olhos['position'][2],
+            r_y=haunter_rot_y
+        )
+        slice_vertices_olhos = light_source_manager.get_vertices_slice(obj_index=0)
+        model_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER.getProgram(), **olhos['model_args'])
+        desenha_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER, texture_id=14, light_source=True)
+        loadLightSourceAttributes(
+            position=olhos['position'],
+            color=olhos['color'],
+            index=0
+        )
 
         ## VIEW
         cameraPos += cameraVel * deltaTime
