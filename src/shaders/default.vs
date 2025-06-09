@@ -16,5 +16,5 @@ void main(){
 	gl_Position = projection * view * model * vec4(aPosition,1.0);
 	texture_coord = vec2(aTexture_coord);
 	frag_pos = vec3(  model * vec4(aPosition, 1.0));
-	normal = vec3( model *vec4(aNormal, 1.0));
+	normal = mat3(transpose(inverse(model))) * aNormal;
 }
