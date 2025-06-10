@@ -142,6 +142,10 @@ def key_event(window,key,scancode,action,mods):
             pegandoPapel = True
             papelVisivel = not papelVisivel
 
+    # 0 - toggle luz ambiente
+    if key == glfw.KEY_0 and action == glfw.PRESS:
+        lights_on['ambiente'] = not lights_on['ambiente']
+
     # 1 - toggle luz dos olhos
     if key == glfw.KEY_1 and action == glfw.PRESS:
         lights_on['olhos'] = not lights_on['olhos']
@@ -475,6 +479,7 @@ if __name__ == '__main__':
     papelVisivel = True
     ka_offset=0; kd_offset=0; ks_offset=0;
     lights_on = dict(
+        ambiente=True,
         olhos=True,
         portal=True,
         lantern=True,
@@ -563,7 +568,7 @@ if __name__ == '__main__':
             *slice_vertices_chao,
             shader=DEFAULT_SHADER,
             texture_id=2,
-            ka=0.1+ka_offset,
+            ka=0.1+ka_offset if lights_on['ambiente'] else 0,
             kd=0.7+kd_offset,
             ks=0+ks_offset,
             ns=1
@@ -580,7 +585,7 @@ if __name__ == '__main__':
             DEFAULT_SHADER,
             texture_id=4,
             inside=True,
-            ka=0.1+ka_offset,
+            ka=0.1+ka_offset if lights_on['ambiente'] else 0,
             kd=0.8+kd_offset,
             ks=0.2+ks_offset,
             ns=1
@@ -593,7 +598,7 @@ if __name__ == '__main__':
             DEFAULT_SHADER,
             texture_id=5,
             inside=True,
-            ka=0.05+ka_offset,
+            ka=0.05+ka_offset if lights_on['ambiente'] else 0,
             kd=0.9+kd_offset,
             ks=0.8+ks_offset,
             ns=100
@@ -606,7 +611,7 @@ if __name__ == '__main__':
             DEFAULT_SHADER,
             texture_id=6,
             inside=True,
-            ka=0.05+ka_offset,
+            ka=0.05+ka_offset if lights_on['ambiente'] else 0,
             kd=0.9+kd_offset,
             ks=0.1+ks_offset,
             ns=2
@@ -619,7 +624,7 @@ if __name__ == '__main__':
             DEFAULT_SHADER,
             texture_id=7,
             inside=True,
-            ka=0.05+ka_offset,
+            ka=0.05+ka_offset if lights_on['ambiente'] else 0,
             kd=0.7+kd_offset,
             ks=0.3+ks_offset,
             ns=5
@@ -632,7 +637,7 @@ if __name__ == '__main__':
             DEFAULT_SHADER, 
             texture_id=8,
             inside=True,
-            ka=0.05+ka_offset,
+            ka=0.05+ka_offset if lights_on['ambiente'] else 0,
             kd=0.9+kd_offset,
             ks=0.5+ks_offset,
             ns=10
@@ -661,14 +666,14 @@ if __name__ == '__main__':
             DEFAULT_SHADER,
             texture_id=9,
             inside=True,
-            ka=0.05+ka_offset,
+            ka=0.05+ka_offset if lights_on['ambiente'] else 0,
             kd=0.9+kd_offset,
             ks=0+ks_offset,
             ns=1
         )
         
         troncos_reflection_coeffs = dict(
-            ka=0.1+ka_offset,
+            ka=0.1+ka_offset if lights_on['ambiente'] else 0,
             kd=0.8+kd_offset,
             ks=0+ks_offset,
             ns=1
@@ -707,7 +712,7 @@ if __name__ == '__main__':
                 *slice_vertices_fake,
                 DEFAULT_SHADER,
                 texture_id=12+(i%2),
-                ka=0.1+ka_offset,
+                ka=0.1+ka_offset if lights_on['ambiente'] else 0,
                 kd=0.8+kd_offset,
                 ks=0+ks_offset,
                 ns=1
@@ -729,7 +734,7 @@ if __name__ == '__main__':
                 *slice_vertices_haunter,
                 DEFAULT_SHADER,
                 texture_id=15,
-                ka=0.1+ka_offset,
+                ka=0.1+ka_offset if lights_on['ambiente'] else 0,
                 kd=0.8+kd_offset,
                 ks=0.6+ks_offset,
                 ns=10
@@ -738,7 +743,7 @@ if __name__ == '__main__':
         tamanho_muro = 4
         slice_vertices_muro = obj_manager.get_vertices_slice(obj_index=13)
         muros_reflection_coeffs = dict(
-            ka=0.1+ka_offset,
+            ka=0.1+ka_offset if lights_on['ambiente'] else 0,
             kd=0.8+kd_offset,
             ks=0.3+ks_offset,
             ns=5
@@ -769,7 +774,7 @@ if __name__ == '__main__':
             *slice_vertices_lapide,
             DEFAULT_SHADER,
             texture_id=17,
-            ka=0.1+ka_offset,
+            ka=0.1+ka_offset if lights_on['ambiente'] else 0,
             kd=0.8+kd_offset,
             ks=0.2+ks_offset,
             ns=3
