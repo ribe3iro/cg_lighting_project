@@ -65,6 +65,9 @@ class Shader:
     # ------------------------------------------------------------------------
     def setVec3(self, name, *args):
         glUniform3f(glGetUniformLocation(self.ID, name), *args)
+    # ------------------------------------------------------------------------
+    def setVec4(self, name, *args):
+        glUniform4f(glGetUniformLocation(self.ID, name), *args)
 
     # utility function for checking shader compilation/linking errors.
     # ------------------------------------------------------------------------

@@ -26,7 +26,7 @@ from utils.object_loader import ObjManager
 from utils.transformations_pipeline import model, view, projection
 
 # funções auxiliares
-def model_objeto(vertice_inicial, num_vertices, program, t_x=0, t_y=0, t_z=0, s_x=1, s_y=1, s_z=1, r_x=0, r_y=0, r_z=0):
+def model_objeto(program, t_x=0, t_y=0, t_z=0, s_x=1, s_y=1, s_z=1, r_x=0, r_y=0, r_z=0):
     # aplica a matriz model
     mat_model = model(t_x, t_y, t_z,  # translação
                     s_x, s_y, s_z,  # escala
@@ -36,25 +36,25 @@ def model_objeto(vertice_inicial, num_vertices, program, t_x=0, t_y=0, t_z=0, s_
 
 # --------------------------------------------------------
 
-def desenha_objeto(vertice_inicial, num_vertices, shader, color=None, texture_id=-1, ka=0.2, kd=0.8, ks=0.3, ns=10, cube_map=False, light_source=False):
+def desenha_objeto(vertice_inicial, num_vertices, shader, color=None, alpha=1, texture_id=-1, ka=0.2, kd=0.8, ks=0.3, ns=10, cube_map=False, light_source=False):
     # texture
     if texture_id >= 0:
-        shader.setVec3('color', *[0,0,0])
+        shader.setVec4('color', *[0,0,0,alpha])
         if cube_map:
             glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id)
         else:
             glBindTexture(GL_TEXTURE_2D, texture_id)
     # color
     elif color is not None:
-        shader.setVec3('color', *color)
+        shader.setVec4('color', *color)
     else:
         return
 
     if not light_source:
-        shader.setFloat('reflectionCoeff.ka', ka)
-        shader.setFloat('reflectionCoeff.kd', kd)
-        shader.setFloat('reflectionCoeff.ks', ks)
-        shader.setFloat('reflectionCoeff.ns', ns)
+        shader.setFloat('reflectionCoeff.ka', max(0, min(1, ka)))
+        shader.setFloat('reflectionCoeff.kd', max(0, min(1, kd)))
+        shader.setFloat('reflectionCoeff.ks', max(0, min(1, ks)))
+        shader.setFloat('reflectionCoeff.ns', max(0, min(1, ns)))
     
     # desenha o objeto
     glDrawArrays(GL_TRIANGLES, vertice_inicial, num_vertices) ## renderizando
@@ -249,7 +249,7 @@ if __name__ == '__main__':
         path_join(shaders_path, 'light_source.fs')
     )
     LIGHT_SOURCE_SHADER.use()
-    LIGHT_SOURCE_SHADER.setVec3('color', *[0,0,0])
+    LIGHT_SOURCE_SHADER.setVec4('color', *[0,0,0,0])
 
     SKYBOX_SHADER = Shader(
         path_join(shaders_path, 'skybox.vs'),
@@ -461,7 +461,7 @@ if __name__ == '__main__':
         DEFAULT_SHADER.use()
 
         DEFAULT_SHADER.setVec3(f'pointLights[{index}].position', *position)
-        DEFAULT_SHADER.setVec3(f'pointLights[{index}].color', *color)
+        DEFAULT_SHADER.setVec3(f'pointLights[{index}].color', *color[:3])
         DEFAULT_SHADER.setFloat(f'pointLights[{index}].decay.constant', constant)
         DEFAULT_SHADER.setFloat(f'pointLights[{index}].decay.linear', linear)
         DEFAULT_SHADER.setFloat(f'pointLights[{index}].decay.quadratic', quadratic)
@@ -530,76 +530,76 @@ if __name__ == '__main__':
         glBindBuffer(GL_ARRAY_BUFFER, objectsVBO)
 
         slice_vertices_chao = obj_manager.get_vertices_slice(obj_index=0)
-        model_objeto(*slice_vertices_chao, DEFAULT_SHADER.getProgram(), t_z=-15, t_y=-1.6, s_x=35, s_z=25)
+        model_objeto(DEFAULT_SHADER.getProgram(), t_z=-15, t_y=-1.6, s_x=35, s_z=25)
         desenha_objeto(
             *slice_vertices_chao,
             shader=DEFAULT_SHADER,
             texture_id=2,
-            ka=0.25+ka_offset,
+            ka=0.1+ka_offset,
             kd=0.7+kd_offset,
             ks=0+ks_offset,
             ns=1
         )
 
         # slice_vertices_caixa2 = obj_manager.get_vertices_slice(obj_index=1)
-        # model_objeto(*slice_vertices_caixa2, DEFAULT_SHADER.getProgram(), t_x=1, t_z=-10)
+        # model_objeto(DEFAULT_SHADER.getProgram(), t_x=1, t_z=-10)
         # desenha_objeto(*slice_vertices_caixa2, DEFAULT_SHADER, texture_id=3)
 
         slice_vertices_casa = obj_manager.get_vertices_slice(obj_index=2)
-        model_objeto(*slice_vertices_casa, DEFAULT_SHADER.getProgram(), t_x=1, t_y=-2, t_z=-30, r_y=-90, s_x=2, s_y=2, s_z=2)
+        model_objeto(DEFAULT_SHADER.getProgram(), t_x=1, t_y=-2, t_z=-30, r_y=-90, s_x=2, s_y=2, s_z=2)
         desenha_objeto(
             *slice_vertices_casa,
             DEFAULT_SHADER,
             texture_id=4,
-            ka=0.2+ka_offset,
+            ka=0.1+ka_offset,
             kd=0.8+kd_offset,
             ks=0.2+ks_offset,
             ns=1
         )
 
         slice_vertices_mesa_escritorio = obj_manager.get_vertices_slice(obj_index=3)
-        model_objeto(*slice_vertices_mesa_escritorio, DEFAULT_SHADER.getProgram(), t_x=-1.9, t_y=-1.5, t_z=-32, r_x=90, r_y=180, r_z=-90, s_x=0.01, s_y=0.01, s_z=0.01)
+        model_objeto(DEFAULT_SHADER.getProgram(), t_x=-1.9, t_y=-1.5, t_z=-32, r_x=90, r_y=180, r_z=-90, s_x=0.01, s_y=0.01, s_z=0.01)
         desenha_objeto(
             *slice_vertices_mesa_escritorio,
             DEFAULT_SHADER,
             texture_id=5,
-            ka=0.2+ka_offset,
+            ka=0.05+ka_offset,
             kd=0.9+kd_offset,
             ks=0.8+ks_offset,
             ns=100
         )
 
         slice_vertices_mesa = obj_manager.get_vertices_slice(obj_index=4)
-        model_objeto(*slice_vertices_mesa, DEFAULT_SHADER.getProgram(), t_y=-1.55, t_z=-28.58, r_y=45, s_x=0.55, s_y=0.55, s_z=0.55)
+        model_objeto(DEFAULT_SHADER.getProgram(), t_y=-1.55, t_z=-28.58, r_y=45, s_x=0.55, s_y=0.55, s_z=0.55)
         desenha_objeto(
             *slice_vertices_mesa,
             DEFAULT_SHADER,
             texture_id=6,
-            ka=0.2+ka_offset,
+            ka=0.05+ka_offset,
             kd=0.9+kd_offset,
-            ks=0.4+ks_offset,
-            ns=5
+            ks=0.1+ks_offset,
+            ns=2
         )
 
         slice_vertices_cama = obj_manager.get_vertices_slice(obj_index=5)
-        model_objeto(*slice_vertices_cama, DEFAULT_SHADER.getProgram(), t_x=3.6, t_y=-1.56, t_z=-31.9, r_y=-90, s_x=0.007, s_y=0.007, s_z=0.007)
+        model_objeto(DEFAULT_SHADER.getProgram(), t_x=3.6, t_y=-1.56, t_z=-31.9, r_y=-90, s_x=0.007, s_y=0.007, s_z=0.007)
         desenha_objeto(
             *slice_vertices_cama,
             DEFAULT_SHADER,
             texture_id=7,
-            ka=0.2+ka_offset,
+            ka=0.05+ka_offset,
             kd=0.7+kd_offset,
             ks=0.3+ks_offset,
             ns=5
         )
         
         slice_vertices_machado = obj_manager.get_vertices_slice(obj_index=6)
-        model_objeto(*slice_vertices_machado, DEFAULT_SHADER.getProgram(), t_y=-0.764, t_z=-28.75)
+        model_objeto(DEFAULT_SHADER.getProgram(), t_y=-0.764, t_z=-28.75)
         desenha_objeto(
             *slice_vertices_machado,
             DEFAULT_SHADER, 
             texture_id=8,
-            ka=0.2+ka_offset,
+            ka=0.05+ka_offset,
             kd=0.9+kd_offset,
             ks=0.5+ks_offset,
             ns=10
@@ -619,7 +619,7 @@ if __name__ == '__main__':
                     papelEscala = 1
                     pegandoPapel = False
         slice_vertices_papel = obj_manager.get_vertices_slice(obj_index=7)
-        model_objeto(*slice_vertices_papel, DEFAULT_SHADER.getProgram(), 
+        model_objeto(DEFAULT_SHADER.getProgram(), 
             t_x=papelPos.x, t_y=papelPos.y, t_z=papelPos.z, 
             s_x=papelEscala, s_y=papelEscala, s_z=papelEscala, 
             r_y=85)
@@ -627,28 +627,35 @@ if __name__ == '__main__':
             *slice_vertices_papel,
             DEFAULT_SHADER,
             texture_id=9,
-            ka=0.2+ka_offset,
+            ka=0.05+ka_offset,
             kd=0.9+kd_offset,
             ks=0+ks_offset,
             ns=1
         )
         
-        slice_vertices_tronco1 = obj_manager.get_vertices_slice(obj_index=8)
-        model_objeto(*slice_vertices_tronco1, DEFAULT_SHADER.getProgram(), t_x=-5, t_y=-2.3)
-        desenha_objeto(*slice_vertices_tronco1, DEFAULT_SHADER, texture_id=10)
-        slice_vertices_tronco2 = obj_manager.get_vertices_slice(obj_index=8)
-        model_objeto(*slice_vertices_tronco2, DEFAULT_SHADER.getProgram(), t_x=-25, t_y=-2.3, t_z=-20)
-        desenha_objeto(*slice_vertices_tronco2, DEFAULT_SHADER, texture_id=10)
-        slice_vertices_tronco3 = obj_manager.get_vertices_slice(obj_index=8)
-        model_objeto(*slice_vertices_tronco3, DEFAULT_SHADER.getProgram(), t_x=25, t_y=-2.3, t_z=-15)
-        desenha_objeto(*slice_vertices_tronco3, DEFAULT_SHADER, texture_id=10)
-        slice_vertices_tronco4 = obj_manager.get_vertices_slice(obj_index=8)
-        model_objeto(*slice_vertices_tronco4, DEFAULT_SHADER.getProgram(), t_x=15, t_y=-2.3, t_z=-35)
-        desenha_objeto(*slice_vertices_tronco4, DEFAULT_SHADER, texture_id=10)
+        troncos_reflection_coeffs = dict(
+            ka=0.1+ka_offset,
+            kd=0.8+kd_offset,
+            ks=0+ks_offset,
+            ns=1
+        )
+        slice_vertices_tronco = obj_manager.get_vertices_slice(obj_index=8)
+        model_objeto(DEFAULT_SHADER.getProgram(), t_x=-5, t_y=-2.3)
+        desenha_objeto(*slice_vertices_tronco, DEFAULT_SHADER, texture_id=10, **troncos_reflection_coeffs)
+        
+        model_objeto(DEFAULT_SHADER.getProgram(), t_x=-25, t_y=-2.3, t_z=-20)
+        desenha_objeto(*slice_vertices_tronco, DEFAULT_SHADER, texture_id=10, **troncos_reflection_coeffs)
+        
+        model_objeto(DEFAULT_SHADER.getProgram(), t_x=25, t_y=-2.3, t_z=-15)
+        desenha_objeto(*slice_vertices_tronco, DEFAULT_SHADER, texture_id=10, **troncos_reflection_coeffs)
+        
+        model_objeto(DEFAULT_SHADER.getProgram(), t_x=15, t_y=-2.3, t_z=-35)
+        desenha_objeto(*slice_vertices_tronco, DEFAULT_SHADER, texture_id=10, **troncos_reflection_coeffs)
 
         n_fake_arvores = 7
         raio = 50
         fake_cx, fake_cz = 0, -15  # centro do círculo
+        slice_vertices_fake = obj_manager.get_vertices_slice(obj_index=10)
         for i in range(n_fake_arvores):
             angulo = 2 * math.pi * i / n_fake_arvores  # divide a circunferência em partes iguais
 
@@ -661,9 +668,16 @@ if __name__ == '__main__':
             # ângulo para olhar para o centro (em radianos)
             rot_y = math.degrees(math.atan2(dx, dz))
 
-            slice_vertices_fake = obj_manager.get_vertices_slice(obj_index=10)
-            model_objeto(*slice_vertices_fake, DEFAULT_SHADER.getProgram(), t_x=fake_tx, t_y=-2, t_z=fake_tz, r_y=rot_y, s_x=8, s_y=8, s_z=8)
-            desenha_objeto(*slice_vertices_fake, DEFAULT_SHADER, texture_id=12+(i%2))
+            model_objeto(DEFAULT_SHADER.getProgram(), t_x=fake_tx, t_y=-2, t_z=fake_tz, r_y=rot_y, s_x=8, s_y=8, s_z=8)
+            desenha_objeto(
+                *slice_vertices_fake,
+                DEFAULT_SHADER,
+                texture_id=12+(i%2),
+                ka=0.1+ka_offset,
+                kd=0.8+kd_offset,
+                ks=0+ks_offset,
+                ns=1
+            )
 
         escala = 15.0
 
@@ -673,27 +687,59 @@ if __name__ == '__main__':
         haunter_dx = cameraPos.x - haunter_x
         haunter_dz = cameraPos.z - haunter_z
         haunter_rot_y = math.degrees(math.atan2(haunter_dx, haunter_dz))
-        
+
         if mostrar_corpo:
             slice_vertices_haunter = obj_manager.get_vertices_slice(obj_index=12)
-            model_objeto(*slice_vertices_haunter, DEFAULT_SHADER.getProgram(),t_x=haunter_x, t_z=haunter_z-10, r_y=haunter_rot_y)
-            desenha_objeto(*slice_vertices_haunter, DEFAULT_SHADER, texture_id=15)
+            model_objeto(DEFAULT_SHADER.getProgram(),t_x=haunter_x, t_z=haunter_z-10, r_y=haunter_rot_y)
+            desenha_objeto(
+                *slice_vertices_haunter,
+                DEFAULT_SHADER,
+                texture_id=15,
+                ka=0.1+ka_offset,
+                kd=0.8+kd_offset,
+                ks=0.6+ks_offset,
+                ns=10
+            )
 
         tamanho_muro = 4
         slice_vertices_muro = obj_manager.get_vertices_slice(obj_index=13)
+        muros_reflection_coeffs = dict(
+            ka=0.1+ka_offset,
+            kd=0.8+kd_offset,
+            ks=0.3+ks_offset,
+            ns=5
+        )
         for j_index, j in enumerate(Z_LIMIT):
             for i in range(X_LIMIT[0], X_LIMIT[1], tamanho_muro):
-                model_objeto(*slice_vertices_muro, DEFAULT_SHADER.getProgram(),t_x=i, t_y=0.4, t_z=j, r_y=(180 if j_index == 1 else 0))
-                desenha_objeto(*slice_vertices_muro, DEFAULT_SHADER, texture_id=16)
+                model_objeto(DEFAULT_SHADER.getProgram(),t_x=i, t_y=0.4, t_z=j, r_y=(180 if j_index == 1 else 0))
+                desenha_objeto(
+                    *slice_vertices_muro,
+                    DEFAULT_SHADER,
+                    texture_id=16,
+                    **muros_reflection_coeffs
+                )
         
         for j_index, j in enumerate(X_LIMIT):
             for i in range(Z_LIMIT[0], Z_LIMIT[1]+ tamanho_muro, tamanho_muro):
-                model_objeto(*slice_vertices_muro, DEFAULT_SHADER.getProgram(),t_x=j, t_y=0.4, t_z=i, r_y=(270 if j_index == 1 else 90))
-                desenha_objeto(*slice_vertices_muro, DEFAULT_SHADER, texture_id=16)
+                model_objeto(DEFAULT_SHADER.getProgram(),t_x=j, t_y=0.4, t_z=i, r_y=(270 if j_index == 1 else 90))
+                desenha_objeto(
+                    *slice_vertices_muro,
+                    DEFAULT_SHADER,
+                    texture_id=16,
+                    **muros_reflection_coeffs
+                )
 
         slice_vertices_lapide = obj_manager.get_vertices_slice(obj_index=14)
-        model_objeto(*slice_vertices_lapide, DEFAULT_SHADER.getProgram(),t_x=5, t_y=-1.6,t_z=-32.4,r_y=90, s_x=0.01, s_y=0.01, s_z=0.01)
-        desenha_objeto(*slice_vertices_lapide, DEFAULT_SHADER, texture_id=17)
+        model_objeto(DEFAULT_SHADER.getProgram(),t_x=5, t_y=-1.6,t_z=-32.4,r_y=90, s_x=0.01, s_y=0.01, s_z=0.01)
+        desenha_objeto(
+            *slice_vertices_lapide,
+            DEFAULT_SHADER,
+            texture_id=17,
+            ka=0.1+ka_offset,
+            kd=0.8+kd_offset,
+            ks=0.2+ks_offset,
+            ns=3
+        )
 
         # light sources
         LIGHT_SOURCE_SHADER.use()
@@ -702,10 +748,10 @@ if __name__ == '__main__':
 
         olhos = {
             'position': [haunter_x, 0, haunter_z-10],
-            'color': [1,1,1],
-            'constant': 1.0,
+            'color': [1,1,1,1],
+            'constant': 0.8,
             'linear': 0.06,
-            'quadratic': 0.02
+            'quadratic': 0.04
         }
         olhos_model_args = dict(
             t_x=olhos['position'][0],
@@ -714,7 +760,7 @@ if __name__ == '__main__':
             r_y=haunter_rot_y
         )
         slice_vertices_olhos = light_source_manager.get_vertices_slice(obj_index=0)
-        model_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER.getProgram(), **olhos_model_args)
+        model_objeto(LIGHT_SOURCE_SHADER.getProgram(), **olhos_model_args)
         desenha_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER, texture_id=14, light_source=True)
         loadLightSourceAttributes(**olhos, index=0)
         
@@ -722,25 +768,26 @@ if __name__ == '__main__':
         portal = {
             'position': [2, 10, 0],
             'color': [0,1,0],
-            'constant': 0.95,
-            'linear': 0.05,
-            'quadratic': 0.015
+            'constant': 1,
+            'linear': 0.08,
+            'quadratic': 0
         }
         portal_model_args = dict(
             t_x=portal['position'][0],
             t_y=portal['position'][1],
             t_z=portal['position'][2],
-            r_x=90
+            r_x=90,
+            s_x=15, s_y=15, s_z=15
         )
         slice_vertices_portal = light_source_manager.get_vertices_slice(obj_index=1)
-        model_objeto(*slice_vertices_portal, LIGHT_SOURCE_SHADER.getProgram(), **portal_model_args, s_x=5, s_y=5, s_z=5)
+        model_objeto(LIGHT_SOURCE_SHADER.getProgram(), **portal_model_args)
         desenha_objeto(*slice_vertices_portal, LIGHT_SOURCE_SHADER, texture_id=18, light_source=True)
         loadLightSourceAttributes(**portal, index=1)
         
         
         lantern = {
             'position': [-2.02, -0.643, -31.265],
-            'color': [.5,0.25,0.05],
+            'color': [247/255, 125/255, 25/255],
             'constant': 1.0,
             'linear': 0.06,
             'quadratic': 0.02
@@ -752,7 +799,7 @@ if __name__ == '__main__':
             s_x=0.003, s_y=0.003, s_z=0.003
         )
         slice_vertices_lantern = light_source_manager.get_vertices_slice(obj_index=2)
-        model_objeto(*slice_vertices_lantern, LIGHT_SOURCE_SHADER.getProgram(), **lantern_model_args)
+        model_objeto(LIGHT_SOURCE_SHADER.getProgram(), **lantern_model_args)
         desenha_objeto(*slice_vertices_lantern, LIGHT_SOURCE_SHADER, texture_id=19, light_source=True)
         loadLightSourceAttributes(**lantern, index=2)
 
@@ -774,8 +821,8 @@ if __name__ == '__main__':
             s_x=0.5, s_y=0.5, s_z=0.5
         )
         slice_vertices_fantasma = light_source_manager.get_vertices_slice(obj_index=3)
-        model_objeto(*slice_vertices_fantasma, LIGHT_SOURCE_SHADER.getProgram(), **fantasma_model_args)
-        desenha_objeto(*slice_vertices_fantasma, LIGHT_SOURCE_SHADER, texture_id=11)
+        model_objeto(LIGHT_SOURCE_SHADER.getProgram(), **fantasma_model_args)
+        desenha_objeto(*slice_vertices_fantasma, LIGHT_SOURCE_SHADER, texture_id=11, alpha=0.7)
         loadLightSourceAttributes(**fantasma, index=3)
 
         ## VIEW
