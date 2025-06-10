@@ -36,7 +36,7 @@ def model_objeto(program, t_x=0, t_y=0, t_z=0, s_x=1, s_y=1, s_z=1, r_x=0, r_y=0
 
 # --------------------------------------------------------
 
-def desenha_objeto(vertice_inicial, num_vertices, shader, color=None, alpha=1, texture_id=-1, ka=0.2, kd=0.8, ks=0.3, ns=10, cube_map=False, light_source=False):
+def desenha_objeto(vertice_inicial, num_vertices, shader, color=None, alpha=1, texture_id=-1, ka=0.2, kd=0.8, ks=0.3, ns=10, cube_map=False, light_source=False, brightness=1):
     # texture
     if texture_id >= 0:
         shader.setVec4('color', *[0,0,0,alpha])
@@ -50,7 +50,9 @@ def desenha_objeto(vertice_inicial, num_vertices, shader, color=None, alpha=1, t
     else:
         return
 
-    if not light_source:
+    if light_source:
+        shader.setFloat('brightness', brightness)
+    else:
         shader.setFloat('reflectionCoeff.ka', max(0, min(1, ka)))
         shader.setFloat('reflectionCoeff.kd', max(0, min(1, kd)))
         shader.setFloat('reflectionCoeff.ks', max(0, min(1, ks)))
@@ -107,6 +109,7 @@ def key_event(window,key,scancode,action,mods):
     global cameraPos
     global papelPos, papelEscala, pegandoPapel, papelVisivel
     global ka_offset, kd_offset, ks_offset
+    global lights_on
     global show_lines, flying_state, mostrar_corpo
     # ESC - fechar janela
     if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
@@ -136,6 +139,22 @@ def key_event(window,key,scancode,action,mods):
         if distToNote < 2:
             pegandoPapel = True
             papelVisivel = not papelVisivel
+
+    # 1 - toggle luz dos olhos
+    if key == glfw.KEY_1 and action == glfw.PRESS:
+        lights_on['olhos'] = not lights_on['olhos']
+
+    # 2 - toggle luz do portal
+    if key == glfw.KEY_2 and action == glfw.PRESS:
+        lights_on['portal'] = not lights_on['portal']
+
+    # 3 - toggle luz da lanterna
+    if key == glfw.KEY_3 and action == glfw.PRESS:
+        lights_on['lantern'] = not lights_on['lantern']
+
+    # 4 - toggle luz do fantasma
+    if key == glfw.KEY_4 and action == glfw.PRESS:
+        lights_on['fantasma'] = not lights_on['fantasma']
 
     # Z - diminuir coeficiente de reflexão ambiente base
     if key == glfw.KEY_Z and action == glfw.PRESS:
@@ -453,6 +472,12 @@ if __name__ == '__main__':
     pegandoPapel = False
     papelVisivel = True
     ka_offset=0; kd_offset=0; ks_offset=0;
+    lights_on = dict(
+        olhos=True,
+        portal=True,
+        lantern=True,
+        fantasma=True
+    )
     haunter_t = 0.0
     mostrar_corpo = False
 
@@ -461,7 +486,7 @@ if __name__ == '__main__':
         DEFAULT_SHADER.use()
 
         DEFAULT_SHADER.setVec3(f'pointLights[{index}].position', *position)
-        DEFAULT_SHADER.setVec3(f'pointLights[{index}].color', *color[:3])
+        DEFAULT_SHADER.setVec3(f'pointLights[{index}].color', *color)
         DEFAULT_SHADER.setFloat(f'pointLights[{index}].decay.constant', constant)
         DEFAULT_SHADER.setFloat(f'pointLights[{index}].decay.linear', linear)
         DEFAULT_SHADER.setFloat(f'pointLights[{index}].decay.quadratic', quadratic)
@@ -748,7 +773,7 @@ if __name__ == '__main__':
 
         olhos = {
             'position': [haunter_x, 0, haunter_z-10],
-            'color': [1,1,1,1],
+            'color': [1,1,1] if lights_on['olhos'] else 3*[0],
             'constant': 0.8,
             'linear': 0.06,
             'quadratic': 0.04
@@ -761,13 +786,19 @@ if __name__ == '__main__':
         )
         slice_vertices_olhos = light_source_manager.get_vertices_slice(obj_index=0)
         model_objeto(LIGHT_SOURCE_SHADER.getProgram(), **olhos_model_args)
-        desenha_objeto(*slice_vertices_olhos, LIGHT_SOURCE_SHADER, texture_id=14, light_source=True)
+        desenha_objeto(
+            *slice_vertices_olhos,
+            LIGHT_SOURCE_SHADER,
+            texture_id=14,
+            light_source=True,
+            brightness = 1.0 if lights_on['olhos'] else 0.7
+        )
         loadLightSourceAttributes(**olhos, index=0)
         
         
         portal = {
             'position': [2, 10, 0],
-            'color': [0,1,0],
+            'color': [0,1,0] if lights_on['portal'] else 3*[0],
             'constant': 1,
             'linear': 0.08,
             'quadratic': 0
@@ -781,13 +812,19 @@ if __name__ == '__main__':
         )
         slice_vertices_portal = light_source_manager.get_vertices_slice(obj_index=1)
         model_objeto(LIGHT_SOURCE_SHADER.getProgram(), **portal_model_args)
-        desenha_objeto(*slice_vertices_portal, LIGHT_SOURCE_SHADER, texture_id=18, light_source=True)
+        desenha_objeto(
+            *slice_vertices_portal,
+            LIGHT_SOURCE_SHADER,
+            texture_id=18,
+            light_source=True,
+            brightness = 1.0 if lights_on['portal'] else 0.7
+        )
         loadLightSourceAttributes(**portal, index=1)
         
         
         lantern = {
             'position': [-2.02, -0.643, -31.265],
-            'color': [247/255, 125/255, 25/255],
+            'color': [247/255, 125/255, 25/255] if lights_on['lantern'] else 3*[0],
             'constant': 1.0,
             'linear': 0.06,
             'quadratic': 0.02
@@ -800,7 +837,13 @@ if __name__ == '__main__':
         )
         slice_vertices_lantern = light_source_manager.get_vertices_slice(obj_index=2)
         model_objeto(LIGHT_SOURCE_SHADER.getProgram(), **lantern_model_args)
-        desenha_objeto(*slice_vertices_lantern, LIGHT_SOURCE_SHADER, texture_id=19, light_source=True)
+        desenha_objeto(
+            *slice_vertices_lantern,
+            LIGHT_SOURCE_SHADER,
+            texture_id=19,
+            light_source=True,
+            brightness = 1.0 if lights_on['lantern'] else 0.7
+        )
         loadLightSourceAttributes(**lantern, index=2)
 
         fantasma_tz = -28.6
@@ -808,10 +851,10 @@ if __name__ == '__main__':
         fantasma_rot_y = math.degrees(math.atan2(cameraPos.x, fantasma_dz))
         fantasma = {
             'position': [0, -1.29, fantasma_tz],
-            'color': [0.9, 0.9, 0.9],
+            'color': [0.9, 0.9, 0.9] if lights_on['fantasma'] else 3*[0],
             'constant': 1.0,
             'linear': 0.06,
-            'quadratic': 0.02
+            'quadratic': 0.02,
         }
         fantasma_model_args = dict(
             t_x=fantasma['position'][0],
@@ -822,7 +865,14 @@ if __name__ == '__main__':
         )
         slice_vertices_fantasma = light_source_manager.get_vertices_slice(obj_index=3)
         model_objeto(LIGHT_SOURCE_SHADER.getProgram(), **fantasma_model_args)
-        desenha_objeto(*slice_vertices_fantasma, LIGHT_SOURCE_SHADER, texture_id=11, alpha=0.7)
+        desenha_objeto(
+            *slice_vertices_fantasma,
+            LIGHT_SOURCE_SHADER,
+            texture_id=11,
+            alpha=0.7,
+            light_source=True,
+            brightness = 1.0 if lights_on['fantasma'] else 0.8
+        )
         loadLightSourceAttributes(**fantasma, index=3)
 
         ## VIEW
