@@ -36,7 +36,7 @@ def model_objeto(program, t_x=0, t_y=0, t_z=0, s_x=1, s_y=1, s_z=1, r_x=0, r_y=0
 
 # --------------------------------------------------------
 
-def desenha_objeto(vertice_inicial, num_vertices, shader, color=None, alpha=1, texture_id=-1, ka=0.2, kd=0.8, ks=0.3, ns=10, cube_map=False, light_source=False, brightness=1):
+def desenha_objeto(vertice_inicial, num_vertices, shader, color=None, alpha=1, texture_id=-1, inside=False, ka=0.2, kd=0.8, ks=0.3, ns=10, cube_map=False, light_source=False, brightness=1):
     # texture
     if texture_id >= 0:
         shader.setVec4('color', *[0,0,0,alpha])
@@ -53,10 +53,12 @@ def desenha_objeto(vertice_inicial, num_vertices, shader, color=None, alpha=1, t
     if light_source:
         shader.setFloat('brightness', brightness)
     else:
+        shader.setBool('inside', inside)
         shader.setFloat('reflectionCoeff.ka', max(0, min(1, ka)))
         shader.setFloat('reflectionCoeff.kd', max(0, min(1, kd)))
         shader.setFloat('reflectionCoeff.ks', max(0, min(1, ks)))
         shader.setFloat('reflectionCoeff.ns', max(0, min(1, ns)))
+        
     
     # desenha o objeto
     glDrawArrays(GL_TRIANGLES, vertice_inicial, num_vertices) ## renderizando
@@ -482,11 +484,12 @@ if __name__ == '__main__':
     mostrar_corpo = False
 
     # função auxiliar
-    def loadLightSourceAttributes(position, color, constant, linear, quadratic, index):
+    def loadLightSourceAttributes(position, color, inside, constant, linear, quadratic, index):
         DEFAULT_SHADER.use()
 
         DEFAULT_SHADER.setVec3(f'pointLights[{index}].position', *position)
         DEFAULT_SHADER.setVec3(f'pointLights[{index}].color', *color)
+        DEFAULT_SHADER.setBool(f'pointLights[{index}].inside', inside)
         DEFAULT_SHADER.setFloat(f'pointLights[{index}].decay.constant', constant)
         DEFAULT_SHADER.setFloat(f'pointLights[{index}].decay.linear', linear)
         DEFAULT_SHADER.setFloat(f'pointLights[{index}].decay.quadratic', quadratic)
@@ -576,6 +579,7 @@ if __name__ == '__main__':
             *slice_vertices_casa,
             DEFAULT_SHADER,
             texture_id=4,
+            inside=True,
             ka=0.1+ka_offset,
             kd=0.8+kd_offset,
             ks=0.2+ks_offset,
@@ -588,6 +592,7 @@ if __name__ == '__main__':
             *slice_vertices_mesa_escritorio,
             DEFAULT_SHADER,
             texture_id=5,
+            inside=True,
             ka=0.05+ka_offset,
             kd=0.9+kd_offset,
             ks=0.8+ks_offset,
@@ -600,6 +605,7 @@ if __name__ == '__main__':
             *slice_vertices_mesa,
             DEFAULT_SHADER,
             texture_id=6,
+            inside=True,
             ka=0.05+ka_offset,
             kd=0.9+kd_offset,
             ks=0.1+ks_offset,
@@ -612,6 +618,7 @@ if __name__ == '__main__':
             *slice_vertices_cama,
             DEFAULT_SHADER,
             texture_id=7,
+            inside=True,
             ka=0.05+ka_offset,
             kd=0.7+kd_offset,
             ks=0.3+ks_offset,
@@ -624,6 +631,7 @@ if __name__ == '__main__':
             *slice_vertices_machado,
             DEFAULT_SHADER, 
             texture_id=8,
+            inside=True,
             ka=0.05+ka_offset,
             kd=0.9+kd_offset,
             ks=0.5+ks_offset,
@@ -652,6 +660,7 @@ if __name__ == '__main__':
             *slice_vertices_papel,
             DEFAULT_SHADER,
             texture_id=9,
+            inside=True,
             ka=0.05+ka_offset,
             kd=0.9+kd_offset,
             ks=0+ks_offset,
@@ -774,6 +783,7 @@ if __name__ == '__main__':
         olhos = {
             'position': [haunter_x, 0, haunter_z-10],
             'color': [1,1,1] if lights_on['olhos'] else 3*[0],
+            'inside': 0,
             'constant': 0.8,
             'linear': 0.06,
             'quadratic': 0.04
@@ -799,16 +809,17 @@ if __name__ == '__main__':
         portal = {
             'position': [2, 10, 0],
             'color': [0,1,0] if lights_on['portal'] else 3*[0],
-            'constant': 1,
-            'linear': 0.08,
-            'quadratic': 0
+            'inside': 0,
+            'constant': 0.01,
+            'linear': 0,
+            'quadratic': 0.04
         }
         portal_model_args = dict(
             t_x=portal['position'][0],
             t_y=portal['position'][1],
             t_z=portal['position'][2],
             r_x=90,
-            s_x=15, s_y=15, s_z=15
+            s_x=12, s_y=12, s_z=12
         )
         slice_vertices_portal = light_source_manager.get_vertices_slice(obj_index=1)
         model_objeto(LIGHT_SOURCE_SHADER.getProgram(), **portal_model_args)
@@ -825,6 +836,7 @@ if __name__ == '__main__':
         lantern = {
             'position': [-2.02, -0.643, -31.265],
             'color': [247/255, 125/255, 25/255] if lights_on['lantern'] else 3*[0],
+            'inside': 1,
             'constant': 1.0,
             'linear': 0.06,
             'quadratic': 0.02
@@ -852,6 +864,7 @@ if __name__ == '__main__':
         fantasma = {
             'position': [0, -1.29, fantasma_tz],
             'color': [0.9, 0.9, 0.9] if lights_on['fantasma'] else 3*[0],
+            'inside': 1,
             'constant': 1.0,
             'linear': 0.06,
             'quadratic': 0.02,
